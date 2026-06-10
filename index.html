@@ -240,6 +240,14 @@
   }
   .draw-row .vs { text-align: center; color: var(--muted); font-size: 0.8rem; }
 
+  .scorer-link {
+    display: inline-block; margin: -4px 0 12px; font-size: 0.85rem;
+    color: var(--bg-light); text-decoration: none; font-weight: 600;
+  }
+  .scorer-link:hover { text-decoration: underline; }
+  .share-code { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; color: var(--bg); }
+  .share-link { word-break: break-all; font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+
   @media (max-width: 520px) {
     .match { grid-template-columns: 1fr 76px 12px 76px 1fr; gap: 5px; }
     .match .name { font-size: 0.83rem; }
@@ -286,6 +294,13 @@
       <button class="btn" id="saveTeamsBtn">Spremi i kreni</button>
       <button class="btn danger" id="resetBtn">Resetiraj turnir</button>
     </div>
+
+    <div class="card" id="shareCard">
+      <h2>Dijeljenje turnira (online)</h2>
+      <p class="hint" id="shareHint"></p>
+      <div id="shareInfo"></div>
+      <button class="btn gold" id="shareBtn">Podijeli turnir</button>
+    </div>
   </section>
 
   <!-- KOLA -->
@@ -313,6 +328,10 @@
 
 </main>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="sync.js"></script>
 <script>
 const STORAGE_KEY = 'efd-bela-v1';
 const TEAMS = 10;
@@ -357,8 +376,80 @@ function loadState() {
   return defaultState();
 }
 
+/* ---------- dijeljenje turnira (Firebase) ---------- */
+let sharing = false;
+let applyingRemote = false;
+
+function genId() {
+  return Math.random().toString(36).slice(2, 8);
+}
+
 function save() {
+  if (sharing && !applyingRemote && state.turnirId) state.updatedAt = Date.now();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (sharing && !applyingRemote && state.turnirId) {
+    BelaSync.push(state.turnirId, state);
+  }
+}
+
+function watchRemote() {
+  if (!state.turnirId) return;
+  BelaSync.watch(state.turnirId, remote => {
+    if (!remote) return;
+    if (remote.updatedAt && remote.updatedAt === state.updatedAt) return; // naš vlastiti upis
+    applyingRemote = true;
+    const id = state.turnirId;
+    state = Object.assign(defaultState(), remote);
+    state.teams = state.teams.map((n, i) => (n && n.trim()) ? n : DEFAULT_TEAMS[i]);
+    state.turnirId = id;
+    state.shared = true;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    applyingRemote = false;
+    renderAll();
+  });
+}
+
+function startSharing() {
+  if (!BelaSync.configured()) {
+    alert('Firebase nije konfiguriran. Ispuni firebase-config.js pa probaj ponovno.');
+    return;
+  }
+  if (!state.turnirId) state.turnirId = genId();
+  state.shared = true;
+  sharing = true;
+  save();
+  watchRemote();
+  renderAll();
+}
+
+function baseLink() {
+  return location.origin + location.pathname.replace(/[^/]*$/, '') ;
+}
+
+function renderShare() {
+  const card = document.getElementById('shareCard');
+  const hint = document.getElementById('shareHint');
+  const info = document.getElementById('shareInfo');
+  const btn = document.getElementById('shareBtn');
+  info.innerHTML = '';
+
+  if (!BelaSync.configured()) {
+    hint.textContent = 'Za dijeljenje uživo upiši podatke svojeg Firebase projekta u firebase-config.js (upute su u toj datoteci).';
+    btn.style.display = 'none';
+    return;
+  }
+  if (!sharing) {
+    hint.textContent = 'Klikni da turnir postane dostupan online — parovi tada svojim mobitelima upisuju skor svake partije, a rezultat se sam zbraja u tablicu.';
+    btn.style.display = '';
+    btn.textContent = 'Podijeli turnir';
+    return;
+  }
+  hint.textContent = 'Turnir je online. Otvori utakmicu u kartici "Kola" i podijeli link "🃏 brojač" odgovarajućem paru.';
+  btn.style.display = 'none';
+  info.innerHTML =
+    '<p class="hint">Šifra turnira</p><div class="share-code">' + state.turnirId + '</div>' +
+    '<p class="hint" style="margin-top:10px;">Poveznica (organizator):</p>' +
+    '<div class="share-link">' + baseLink() + 'index.html?turnir=' + state.turnirId + '</div>';
 }
 
 function teamName(i) {
@@ -544,11 +635,15 @@ document.getElementById('saveTeamsBtn').addEventListener('click', () => {
 
 document.getElementById('resetBtn').addEventListener('click', () => {
   if (confirm('Sigurno želiš obrisati cijeli turnir (sve ekipe i rezultate)?')) {
+    const id = state.turnirId, sh = state.shared;
     state = defaultState();
+    if (sh) { state.turnirId = id; state.shared = true; }
     save();
     renderAll();
   }
 });
+
+document.getElementById('shareBtn').addEventListener('click', startSharing);
 
 /* ---------- ždrijeb 1. kola ---------- */
 function renderDraw() {
@@ -739,7 +834,18 @@ function renderRoundsList(list) {
     card.appendChild(hint);
 
     const statsBefore = winsBeforeRound(r);
-    round.forEach((m, i) => card.appendChild(matchEl(m, i + 1, statsBefore, state.target, updateRoundsDerived)));
+    round.forEach((m, i) => {
+      card.appendChild(matchEl(m, i + 1, statsBefore, state.target, updateRoundsDerived));
+      if (sharing && state.turnirId) {
+        const a = document.createElement('a');
+        a.className = 'scorer-link';
+        a.href = 'partija.html?turnir=' + state.turnirId + '&kolo=' + r + '&stol=' + i;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = '🃏 brojač partije — ' + teamName(m.t1) + ' / ' + teamName(m.t2);
+        card.appendChild(a);
+      }
+    });
 
     // zadnje kolo se može obrisati (npr. za ponovno sparivanje)
     if (r === state.rounds.length - 1 && r > 0) {
@@ -1033,8 +1139,21 @@ function renderAll() {
   renderRounds();
   renderStandings();
   renderFinals();
+  renderShare();
 }
 
+/* ---------- inicijalizacija dijeljenja ---------- */
+function initSharing() {
+  if (!BelaSync.configured()) return;
+  const urlId = new URLSearchParams(location.search).get('turnir');
+  if (urlId) { state.turnirId = urlId; state.shared = true; }
+  if (state.shared && state.turnirId) {
+    sharing = true;
+    watchRemote();   // povuče zadnje stanje s poslužitelja i sluša promjene
+  }
+}
+
+initSharing();
 renderAll();
 </script>
 </body>

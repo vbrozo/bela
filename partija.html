@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bela — brojač partije</title>
+<style>
+  :root {
+    --bg: #0f4d2e; --bg-light: #166038; --card: #ffffff; --card-soft: #f4f7f5;
+    --accent: #c8102e; --gold: #d4a017; --text: #1b2a22; --muted: #6b7c72;
+    --win: #1c7c3c; --border: #dde5e0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(160deg, var(--bg) 0%, var(--bg-light) 100%);
+    min-height: 100vh; color: var(--text); padding-bottom: 90px;
+  }
+  header { text-align: center; padding: 18px 16px 10px; color: #fff; }
+  header h1 { font-size: 1.3rem; }
+  header a { color: #cfe5d8; font-size: 0.8rem; text-decoration: none; }
+  main { max-width: 640px; margin: 0 auto; padding: 14px; }
+  .card {
+    background: var(--card); border-radius: 14px; padding: 16px;
+    margin-bottom: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  }
+  .scoreboard {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    gap: 8px; text-align: center;
+  }
+  .scoreboard .tn { font-weight: 600; font-size: 0.95rem; }
+  .scoreboard .pts { font-size: 2.1rem; font-weight: 800; }
+  .scoreboard .pts.lead { color: var(--win); }
+  .scoreboard .sep { color: var(--muted); font-weight: 700; }
+  .target-note { text-align: center; color: var(--muted); font-size: 0.82rem; margin-top: 6px; }
+  .winner-banner {
+    margin-top: 12px; text-align: center; padding: 12px;
+    background: linear-gradient(135deg, #fdf2cc, #fbe39a);
+    border-radius: 11px; font-weight: 700;
+  }
+  .deal-head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+  }
+  .deal-head h3 { font-size: 1rem; }
+  .deal-head .del { background: none; border: none; color: var(--accent); font-size: 1.1rem; cursor: pointer; }
+  .field { margin-bottom: 12px; }
+  .field > label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill {
+    flex: 1; min-width: 70px; border: 1.5px solid var(--border); background: #fff;
+    color: var(--text); padding: 9px 8px; border-radius: 9px; font-size: 0.85rem;
+    cursor: pointer; text-align: center;
+  }
+  .pill.on { background: var(--bg); color: #fff; border-color: var(--bg); font-weight: 600; }
+  .two { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
+  .two .sep { text-align: center; color: var(--muted); }
+  input[type="number"] {
+    width: 100%; padding: 11px 6px; border: 1.5px solid var(--border); border-radius: 9px;
+    font-size: 1.1rem; text-align: center; font-weight: 700; background: #fff; color: var(--text);
+    -moz-appearance: textfield; appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input:focus { outline: none; border-color: var(--bg-light); }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; }
+  .deal-result { text-align: center; font-weight: 700; margin-top: 10px; color: var(--win); }
+  .deal-result.warn { color: var(--accent); font-weight: 600; font-size: 0.85rem; }
+  .btn {
+    display: inline-block; border: none; background: var(--bg); color: #fff;
+    padding: 12px 18px; border-radius: 10px; font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; width: 100%; margin-top: 6px;
+  }
+  .btn.gold { background: var(--gold); }
+  .btn.secondary { background: #e8eeea; color: var(--text); }
+  .btn:hover { filter: brightness(0.96); }
+  .sync-status { text-align: center; font-size: 0.82rem; margin-top: 8px; color: var(--muted); }
+  .sync-status.ok { color: var(--win); font-weight: 600; }
+  .setup label { display:block; font-size:0.8rem; font-weight:600; margin: 8px 0 4px; }
+  .setup input[type="text"], .setup select {
+    width:100%; padding:9px 11px; border:1.5px solid var(--border); border-radius:9px; font-size:0.95rem;
+  }
+  .footer-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; padding: 10px 14px;
+    background: rgba(15,77,46,0.96); backdrop-filter: blur(6px);
+  }
+  .footer-bar .inner { max-width: 640px; margin: 0 auto; }
+  .footer-bar .btn { margin: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🃏 Bela — brojač partije</h1>
+  <a id="backLink" href="index.html">← natrag na turnir</a>
+</header>
+
+<main>
+  <div class="card setup" id="setupCard" style="display:none;">
+    <label>Ekipa A</label>
+    <input type="text" id="teamAInput" placeholder="Ekipa A">
+    <label>Ekipa B</label>
+    <input type="text" id="teamBInput" placeholder="Ekipa B">
+    <label>Partija do</label>
+    <select id="targetInput">
+      <option value="1501">1501</option>
+      <option value="1001">1001</option>
+      <option value="701">701</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="scoreboard">
+      <div>
+        <div class="tn" id="sbNameA">Ekipa A</div>
+        <div class="pts" id="sbPtsA">0</div>
+      </div>
+      <div class="sep">:</div>
+      <div>
+        <div class="tn" id="sbNameB">Ekipa B</div>
+        <div class="pts" id="sbPtsB">0</div>
+      </div>
+    </div>
+    <div class="target-note" id="targetNote">do 1501</div>
+    <div class="winner-banner" id="winnerBanner" style="display:none;"></div>
+    <div class="sync-status" id="syncStatus"></div>
+  </div>
+
+  <div id="deals"></div>
+</main>
+
+<div class="footer-bar">
+  <div class="inner">
+    <button class="btn gold" id="addDealBtn">+ Novo dijeljenje</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="sync.js"></script>
+<script src="bela.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const TURNIR = params.get('turnir');
+const KOLO   = params.get('kolo');   // index kola (0-based)
+const STOL   = params.get('stol');   // index utakmice u kolu (0-based)
+const linked = TURNIR !== null && KOLO !== null && STOL !== null && BelaSync.configured();
+
+const KEY = 'efd-bela-partija-' + (TURNIR || 'local') + '-' + (KOLO ?? 'x') + '-' + (STOL ?? 'x');
+
+function emptyDeal() {
+  return { caller: null, trick0: '', trick1: '', zvanja0: 0, zvanja1: 0,
+           zvanjaWinner: null, bela0: false, bela1: false, kapot: null };
+}
+
+let st = load();
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { teamA: 'Ekipa A', teamB: 'Ekipa B', target: 1501, deals: [emptyDeal()] };
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(st)); }
+
+let lastWritten = null;
+
+function setupHeaderFromTournament() {
+  if (!linked) {
+    document.getElementById('setupCard').style.display = '';
+    document.getElementById('teamAInput').value = st.teamA;
+    document.getElementById('teamBInput').value = st.teamB;
+    document.getElementById('targetInput').value = st.target;
+    document.getElementById('backLink').style.display = 'none';
+    return;
+  }
+  // poveži se s turnirom: dohvati nazive i granicu
+  BelaSync.get(TURNIR).then(t => {
+    if (!t) { document.getElementById('syncStatus').textContent =
+      'Turnir nije pronađen — provjeri vezu.'; return; }
+    const r = Number(KOLO), m = Number(STOL);
+    const match = t.rounds && t.rounds[r] && t.rounds[r][m];
+    if (!match) { document.getElementById('syncStatus').textContent =
+      'Utakmica nije pronađena.'; return; }
+    const name = i => (t.teams && t.teams[i] && t.teams[i].trim()) ? t.teams[i].trim() : ('Ekipa ' + (i + 1));
+    st.teamA = name(match.t1);
+    st.teamB = name(match.t2);
+    st.target = t.target || 1501;
+    save();
+    render();
+  });
+}
+
+document.getElementById('teamAInput')?.addEventListener('input', e => { st.teamA = e.target.value; save(); render(); });
+document.getElementById('teamBInput')?.addEventListener('input', e => { st.teamB = e.target.value; save(); render(); });
+document.getElementById('targetInput')?.addEventListener('change', e => { st.target = Number(e.target.value); save(); render(); });
+
+document.getElementById('addDealBtn').addEventListener('click', () => {
+  st.deals.push(emptyDeal());
+  save();
+  render();
+  window.scrollTo(0, document.body.scrollHeight);
+});
+
+function dealCard(d, idx) {
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const head = document.createElement('div');
+  head.className = 'deal-head';
+  head.innerHTML = '<h3>' + (idx + 1) + '. dijeljenje</h3>';
+  const del = document.createElement('button');
+  del.className = 'del'; del.textContent = '✕';
+  del.title = 'Obriši dijeljenje';
+  del.addEventListener('click', () => {
+    if (st.deals.length === 1) { st.deals[0] = emptyDeal(); }
+    else st.deals.splice(idx, 1);
+    save(); render();
+  });
+  head.appendChild(del);
+  card.appendChild(head);
+
+  // zvao adut
+  card.appendChild(pillField('Zvao aduta', ['caller'], [
+    { lbl: st.teamA, val: 0 }, { lbl: st.teamB, val: 1 }
+  ], d.caller, v => { d.caller = (d.caller === v ? null : v); save(); render(); }));
+
+  // štih bodovi
+  const stih = document.createElement('div');
+  stih.className = 'field';
+  stih.innerHTML = '<label>Bodovi iz štihova (zbroj 162)</label>';
+  const two = document.createElement('div'); two.className = 'two';
+  const a = numInput(d.trick0, v => { d.trick0 = v; if (d.kapot === null) d.trick1 = comp(v); save(); render(); });
+  const b = numInput(d.trick1, v => { d.trick1 = v; if (d.kapot === null) d.trick0 = comp(v); save(); render(); });
+  const sep = document.createElement('div'); sep.className = 'sep'; sep.textContent = ':';
+  two.append(a, sep, b);
+  stih.appendChild(two);
+  card.appendChild(stih);
+
+  // zvanja
+  const zv = document.createElement('div');
+  zv.className = 'field';
+  zv.innerHTML = '<label>Zvanja (terca 20 · kvarta 50 · kvinta 100 · 4×J 200 · 4×9 150)</label>';
+  const ztwo = document.createElement('div'); ztwo.className = 'two';
+  const za = numInput(d.zvanja0, v => { d.zvanja0 = Number(v) || 0; save(); render(); });
+  const zb = numInput(d.zvanja1, v => { d.zvanja1 = Number(v) || 0; save(); render(); });
+  const zsep = document.createElement('div'); zsep.className = 'sep'; zsep.textContent = ':';
+  ztwo.append(za, zsep, zb);
+  zv.appendChild(ztwo);
+  card.appendChild(zv);
+
+  // bela
+  const belaField = document.createElement('div');
+  belaField.className = 'field';
+  belaField.innerHTML = '<label>Bela (kralj + dama aduta · 20)</label>';
+  const bp = document.createElement('div'); bp.className = 'pills';
+  bp.appendChild(togglePill(st.teamA, d.bela0, on => { d.bela0 = on; save(); render(); }));
+  bp.appendChild(togglePill(st.teamB, d.bela1, on => { d.bela1 = on; save(); render(); }));
+  belaField.appendChild(bp);
+  card.appendChild(belaField);
+
+  // kapot
+  card.appendChild(pillField('Kapot (sve štihove)', ['kapot'], [
+    { lbl: '—', val: null }, { lbl: st.teamA, val: 0 }, { lbl: st.teamB, val: 1 }
+  ], d.kapot, v => { d.kapot = v; if (v !== null) { d.trick0 = ''; d.trick1 = ''; } save(); render(); }));
+
+  // rezultat dijeljenja
+  const res = document.createElement('div');
+  const [s0, s1] = Bela.scoreDeal(normDeal(d));
+  if (validDeal(d)) {
+    res.className = 'deal-result';
+    res.textContent = st.teamA + ' ' + s0 + ' : ' + s1 + ' ' + st.teamB;
+  } else {
+    res.className = 'deal-result warn';
+    res.textContent = 'Označi tko je zvao i upiši bodove (zbroj štihova 162).';
+  }
+  card.appendChild(res);
+  return card;
+}
+
+function comp(v) {
+  if (v === '' || v === null) return '';
+  const n = Math.max(0, Math.min(162, Number(v) || 0));
+  return String(162 - n);
+}
+function normDeal(d) {
+  return { caller: d.caller, trick0: Number(d.trick0) || 0, trick1: Number(d.trick1) || 0,
+    zvanja0: d.zvanja0, zvanja1: d.zvanja1, zvanjaWinner: d.zvanjaWinner,
+    bela0: d.bela0, bela1: d.bela1, kapot: d.kapot };
+}
+function validDeal(d) {
+  if (d.caller === null) return false;
+  if (d.kapot !== null) return true;
+  const a = Number(d.trick0), b = Number(d.trick1);
+  if (d.trick0 === '' && d.trick1 === '') return false;
+  return (a + b) === 162;
+}
+
+function pillField(labelText, _path, opts, current, onPick) {
+  const f = document.createElement('div');
+  f.className = 'field';
+  f.innerHTML = '<label>' + labelText + '</label>';
+  const pills = document.createElement('div');
+  pills.className = 'pills';
+  opts.forEach(o => {
+    const p = document.createElement('button');
+    p.className = 'pill' + (current === o.val ? ' on' : '');
+    p.textContent = o.lbl;
+    p.addEventListener('click', () => onPick(o.val));
+    pills.appendChild(p);
+  });
+  f.appendChild(pills);
+  return f;
+}
+function togglePill(lbl, on, onChange) {
+  const p = document.createElement('button');
+  p.className = 'pill' + (on ? ' on' : '');
+  p.textContent = lbl;
+  p.addEventListener('click', () => onChange(!on));
+  return p;
+}
+function numInput(val, onChange) {
+  const i = document.createElement('input');
+  i.type = 'number'; i.min = 0; i.placeholder = '0';
+  i.value = (val === '' || val === null || val === undefined) ? '' : val;
+  i.addEventListener('change', () => onChange(i.value));
+  return i;
+}
+
+function render() {
+  // scoreboard
+  document.getElementById('sbNameA').textContent = st.teamA;
+  document.getElementById('sbNameB').textContent = st.teamB;
+  document.getElementById('targetNote').textContent = 'do ' + st.target;
+
+  const g = Bela.scoreGame(st.deals.filter(validDeal).map(normDeal), st.target);
+  document.getElementById('sbPtsA').textContent = g.total0;
+  document.getElementById('sbPtsB').textContent = g.total1;
+  document.getElementById('sbPtsA').className = 'pts' + (g.total0 > g.total1 ? ' lead' : '');
+  document.getElementById('sbPtsB').className = 'pts' + (g.total1 > g.total0 ? ' lead' : '');
+
+  const banner = document.getElementById('winnerBanner');
+  if (g.finished && g.winner !== null) {
+    banner.style.display = '';
+    banner.textContent = '🏆 ' + (g.winner === 0 ? st.teamA : st.teamB) + ' dobiva partiju!';
+  } else {
+    banner.style.display = 'none';
+  }
+
+  // dijeljenja
+  const wrap = document.getElementById('deals');
+  wrap.innerHTML = '';
+  st.deals.forEach((d, i) => wrap.appendChild(dealCard(d, i)));
+
+  // auto-upis u turnir kad je partija gotova
+  maybeWrite(g);
+}
+
+function maybeWrite(g) {
+  const status = document.getElementById('syncStatus');
+  if (!linked) {
+    if (g.finished) {
+      status.className = 'sync-status ok';
+      status.textContent = 'Rezultat: ' + g.total0 + ' : ' + g.total1 +
+        ' — upiši ga ručno u turnir (nije povezano).';
+    } else { status.textContent = ''; }
+    return;
+  }
+  if (!g.finished) { status.textContent = 'Povezano s turnirom — rezultat se upisuje kad partija završi.'; return; }
+  const sig = g.total0 + ':' + g.total1;
+  if (sig === lastWritten) { status.className = 'sync-status ok'; status.textContent = '✓ Upisano u turnir (' + sig + ')'; return; }
+  BelaSync.setMatch(TURNIR, Number(KOLO), Number(STOL), g.total0, g.total1).then(ok => {
+    if (ok) { lastWritten = sig; status.className = 'sync-status ok';
+      status.textContent = '✓ Upisano u turnir (' + sig + ')'; }
+    else { status.textContent = 'Upis nije uspio — provjeri vezu.'; }
+  });
+}
+
+setupHeaderFromTournament();
+render();
+</script>
+</body>
+</html>
