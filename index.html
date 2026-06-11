@@ -883,6 +883,15 @@ function renderRoundsList(list) {
     const statsBefore = winsBeforeRound(r);
     round.forEach((m, i) => {
       card.appendChild(matchEl(m, i + 1, statsBefore, state.target, updateRoundsDerived));
+      if (state.turnirId) {
+        const a = document.createElement('a');
+        a.className = 'scorer-link';
+        a.href = tableUrl(r, i);
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = '🃏 Stol ' + (i + 1) + ' — upiši partiju (' + teamName(m.t1) + ' / ' + teamName(m.t2) + ')';
+        card.appendChild(a);
+      }
     });
 
     // ispis QR kodova ovog kola (samo admin)

@@ -151,6 +151,7 @@
 <div class="footer-bar">
   <div class="inner">
     <button class="btn gold" id="addDealBtn">+ Novo dijeljenje</button>
+    <button class="btn" id="unlockBtn" style="display:none;">🔒 Otključaj za upis</button>
   </div>
 </div>
 
@@ -159,6 +160,7 @@
 <script src="firebase-config.js"></script>
 <script src="sync.js"></script>
 <script src="bela.js"></script>
+<script src="view.js"></script>
 <script>
 const params = new URLSearchParams(location.search);
 const TURNIR = params.get('turnir');
@@ -226,6 +228,16 @@ document.getElementById('addDealBtn').addEventListener('click', () => {
   render();
   window.scrollTo(0, document.body.scrollHeight);
 });
+
+document.getElementById('unlockBtn').addEventListener('click', async () => {
+  await WriteMode.toggle();
+  render();
+});
+
+// upis je dopušten otključanim stolovima ili adminu
+function canWrite() {
+  return WriteMode.on() || (window.ViewMode && ViewMode.full());
+}
 
 function dealCard(d, idx) {
   const card = document.createElement('div');
@@ -425,29 +437,50 @@ function render() {
 
   // auto-upis u turnir kad je partija gotova
   maybeWrite(g);
-  applyLock();
+  applyAccess();
 }
 
-// Zaključano kolo: brojač postaje samo za čitanje (izmjene radi samo organizator).
-function applyLock() {
-  const footer = document.querySelector('.footer-bar');
-  if (footer) footer.style.display = roundLocked ? 'none' : '';
-  if (!roundLocked) return;
+function setReadonly(ro) {
   const main = document.querySelector('main');
-  main.querySelectorAll('input').forEach(i => { i.readOnly = true; });
-  main.querySelectorAll('select').forEach(s => { s.disabled = true; });
-  main.querySelectorAll('.del').forEach(d => { d.style.display = 'none'; });
+  main.querySelectorAll('input').forEach(i => { i.readOnly = ro; });
+  main.querySelectorAll('select').forEach(s => { s.disabled = ro; });
+  main.querySelectorAll('.del').forEach(d => { d.style.display = ro ? 'none' : ''; });
   main.querySelectorAll('.zv-add, .zv-chip, .pill').forEach(p => {
-    p.style.pointerEvents = 'none'; p.style.opacity = '0.6';
+    p.style.pointerEvents = ro ? 'none' : '';
+    p.style.opacity = ro ? '0.6' : '';
   });
+}
+
+// Pristup brojaču: zaključano kolo (samo organizator), zaštita upisa kodom, ili otvoreno.
+function applyAccess() {
+  const addBtn = document.getElementById('addDealBtn');
+  const unlockBtn = document.getElementById('unlockBtn');
   const status = document.getElementById('syncStatus');
-  status.className = 'sync-status';
-  status.textContent = '🔒 Ovo kolo je zaključano (igra se sljedeće kolo). Za ispravak se javi organizatoru.';
+
+  if (roundLocked) {  // igra se neko kasnije kolo
+    setReadonly(true);
+    addBtn.style.display = 'none';
+    unlockBtn.style.display = 'none';
+    status.className = 'sync-status';
+    status.textContent = '🔒 Ovo kolo je zaključano (igra se sljedeće kolo). Za ispravak se javi organizatoru.';
+    return;
+  }
+  if (linked && !canWrite()) {  // treba kod za upis
+    setReadonly(true);
+    addBtn.style.display = 'none';
+    unlockBtn.style.display = '';
+    status.className = 'sync-status';
+    status.textContent = '🔒 Upis je zaključan — dodirni „Otključaj za upis" i unesi kod stola.';
+    return;
+  }
+  setReadonly(false);
+  addBtn.style.display = '';
+  unlockBtn.style.display = 'none';
 }
 
 function maybeWrite(g) {
   const status = document.getElementById('syncStatus');
-  if (linked && roundLocked) return;  // zaključano kolo — bez upisa (poruku postavlja applyLock)
+  if (linked && (roundLocked || !canWrite())) return;  // zaključano / nije otključan upis (poruku postavlja applyAccess)
   if (!linked) {
     if (g.finished) {
       status.className = 'sync-status ok';
