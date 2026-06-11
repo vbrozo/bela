@@ -245,6 +245,19 @@
     color: var(--bg-light); text-decoration: none; font-weight: 600;
   }
   .scorer-link:hover { text-decoration: underline; }
+  .qr-box {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px; margin: 4px 0 12px;
+    background: var(--card-soft); border: 1px solid var(--border); border-radius: 10px;
+  }
+  .qr-box img {
+    width: 96px; height: 96px; flex-shrink: 0;
+    background: #fff; border-radius: 6px;
+  }
+  .qr-box .qr-meta { min-width: 0; }
+  .qr-box .qr-meta .qr-tbl { font-weight: 700; font-size: 0.9rem; }
+  .qr-box .qr-meta .qr-vs { color: var(--muted); font-size: 0.82rem; margin: 2px 0 6px; }
+  .qr-box .qr-meta .scorer-link { margin: 0; }
   .share-code { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; color: var(--bg); }
   .share-link { word-break: break-all; font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
 
@@ -430,6 +443,48 @@ function startSharing() {
 
 function baseLink() {
   return location.origin + location.pathname.replace(/[^/]*$/, '') ;
+}
+
+/* ---------- QR kodovi po stolu ---------- */
+function tableUrl(r, i) {
+  return baseLink() + 'partija.html?turnir=' + (state.turnirId || TURNIR_ID) +
+    '&kolo=' + r + '&stol=' + i;
+}
+function qrSrc(data, size) {
+  return 'https://api.qrserver.com/v1/create-qr-code/?size=' + size + 'x' + size +
+    '&margin=8&data=' + encodeURIComponent(data);
+}
+function printRoundQR(r) {
+  const round = state.rounds[r];
+  if (!round) return;
+  const cards = round.map((m, i) => {
+    const url = tableUrl(r, i);
+    return '<div class="qrp">' +
+      '<div class="t">Stol ' + (i + 1) + '</div>' +
+      '<div class="n">' + teamName(m.t1) + '<br><span>vs</span><br>' + teamName(m.t2) + '</div>' +
+      '<img src="' + qrSrc(url, 320) + '" alt="QR">' +
+      '<div class="k">' + (r + 1) + '. kolo · skeniraj i upiši partiju</div>' +
+      '</div>';
+  }).join('');
+  const w = window.open('', '_blank');
+  if (!w) { alert('Skočni prozor je blokiran — dopusti ga pa probaj ponovno.'); return; }
+  w.document.write(
+    '<!doctype html><html lang="hr"><head><meta charset="utf-8">' +
+    '<title>QR za stolove · ' + (r + 1) + '. kolo</title><style>' +
+    'body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:14px;color:#1b2a22}' +
+    'h1{font-size:1.1rem;color:#0f4d2e;text-align:center;margin:0 0 12px}' +
+    '.qrp{page-break-inside:avoid;display:inline-block;width:46%;box-sizing:border-box;' +
+    'border:2px solid #0f4d2e;border-radius:14px;margin:1%;padding:16px;text-align:center;vertical-align:top}' +
+    '.qrp .t{font-size:1.7rem;font-weight:800;color:#0f4d2e}' +
+    '.qrp .n{margin:8px 0;font-weight:700;font-size:1.05rem}.qrp .n span{color:#6b7c72;font-weight:500}' +
+    '.qrp img{width:320px;height:320px;max-width:100%}' +
+    '.qrp .k{color:#6b7c72;font-size:.85rem;margin-top:6px}' +
+    '@media print{button{display:none}}' +
+    '</style></head><body>' +
+    '<h1>♠ EFD Bela — QR kodovi stolova (' + (r + 1) + '. kolo)</h1>' +
+    '<div style="text-align:center;margin-bottom:10px"><button onclick="window.print()">🖨️ Ispiši</button></div>' +
+    cards + '</body></html>');
+  w.document.close();
 }
 
 function renderShare() {
@@ -836,16 +891,42 @@ function renderRoundsList(list) {
     const statsBefore = winsBeforeRound(r);
     round.forEach((m, i) => {
       card.appendChild(matchEl(m, i + 1, statsBefore, state.target, updateRoundsDerived));
-      if (sharing && state.turnirId) {
+      if (state.turnirId) {
+        const url = tableUrl(r, i);
+        const box = document.createElement('div');
+        box.className = 'qr-box';
+        const img = document.createElement('img');
+        img.src = qrSrc(url, 96);
+        img.alt = 'QR Stol ' + (i + 1);
+        img.loading = 'lazy';
+        const meta = document.createElement('div');
+        meta.className = 'qr-meta';
+        const tbl = document.createElement('div');
+        tbl.className = 'qr-tbl';
+        tbl.textContent = 'Stol ' + (i + 1);
+        const vs = document.createElement('div');
+        vs.className = 'qr-vs';
+        vs.textContent = teamName(m.t1) + ' vs ' + teamName(m.t2);
         const a = document.createElement('a');
         a.className = 'scorer-link';
-        a.href = 'partija.html?turnir=' + state.turnirId + '&kolo=' + r + '&stol=' + i;
+        a.href = url;
         a.target = '_blank';
         a.rel = 'noopener';
-        a.textContent = '🃏 brojač partije — ' + teamName(m.t1) + ' / ' + teamName(m.t2);
-        card.appendChild(a);
+        a.textContent = '🃏 Skeniraj ili otvori brojač';
+        meta.append(tbl, vs, a);
+        box.append(img, meta);
+        card.appendChild(box);
       }
     });
+
+    // ispis QR kodova ovog kola (samo admin)
+    if (state.turnirId) {
+      const printBtn = document.createElement('button');
+      printBtn.className = 'btn secondary';
+      printBtn.textContent = '🖨️ QR kodovi za stolove (ispis)';
+      printBtn.addEventListener('click', () => printRoundQR(r));
+      card.appendChild(printBtn);
+    }
 
     // zadnje kolo se može obrisati (npr. za ponovno sparivanje)
     if (r === state.rounds.length - 1 && r > 0) {
@@ -1139,7 +1220,6 @@ function applyMode() {
   main.querySelectorAll('input').forEach(i => { i.readOnly = !wide; });
   main.querySelectorAll('select').forEach(s => { s.disabled = !wide; });
   main.querySelectorAll('.btn').forEach(b => { b.style.display = wide ? '' : 'none'; });
-  main.querySelectorAll('.scorer-link').forEach(a => { a.style.display = wide ? '' : 'none'; });
   const share = document.getElementById('shareCard');
   if (share) share.style.display = wide ? '' : 'none';
   if (!wide) {
