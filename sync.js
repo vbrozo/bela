@@ -45,11 +45,12 @@ window.BelaSync = (function () {
 
   // Upis rezultata jedne utakmice (samo to polje, ne cijeli state).
   // Bumpa updatedAt da organizatorov uživo-prikaz primijeti promjenu.
-  function setMatch(id, r, m, s1, s2) {
+  function setMatch(id, r, m, s1, s2, fin) {
     if (!init()) return Promise.resolve(false);
     const upd = {};
     upd['rounds/' + r + '/' + m + '/s1'] = s1;
     upd['rounds/' + r + '/' + m + '/s2'] = s2;
+    upd['rounds/' + r + '/' + m + '/fin'] = !!fin;  // je li partija gotova (ili samo uživo)
     upd['updatedAt'] = Date.now();
     return db.ref('turniri/' + id).update(upd).then(() => true);
   }

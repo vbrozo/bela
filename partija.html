@@ -432,12 +432,18 @@ function maybeWrite(g) {
     } else { status.textContent = ''; }
     return;
   }
-  if (!g.finished) { status.textContent = 'Povezano s turnirom — rezultat se upisuje kad partija završi.'; return; }
-  const sig = g.total0 + ':' + g.total1;
-  if (sig === lastWritten) { status.className = 'sync-status ok'; status.textContent = '✓ Upisano u turnir (' + sig + ')'; return; }
-  BelaSync.setMatch(TURNIR, Number(KOLO), Number(STOL), g.total0, g.total1).then(ok => {
-    if (ok) { lastWritten = sig; status.className = 'sync-status ok';
-      status.textContent = '✓ Upisano u turnir (' + sig + ')'; }
+  // ne upisuj prazno (0:0) dok partija ne krene
+  if (!g.finished && g.total0 === 0 && g.total1 === 0) {
+    status.textContent = 'Povezano s turnirom — rezultat se prikazuje uživo čim krene.';
+    return;
+  }
+  const sig = g.total0 + ':' + g.total1 + ':' + (g.finished ? 'F' : 'L');
+  const okText = g.finished
+    ? '✓ Upisano u turnir (' + g.total0 + ':' + g.total1 + ')'
+    : '⏳ Uživo u turniru: ' + g.total0 + ' : ' + g.total1;
+  if (sig === lastWritten) { status.className = 'sync-status ok'; status.textContent = okText; return; }
+  BelaSync.setMatch(TURNIR, Number(KOLO), Number(STOL), g.total0, g.total1, g.finished).then(ok => {
+    if (ok) { lastWritten = sig; status.className = 'sync-status ok'; status.textContent = okText; }
     else { status.textContent = 'Upis nije uspio — provjeri vezu.'; }
   });
 }

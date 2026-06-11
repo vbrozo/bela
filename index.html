@@ -513,7 +513,8 @@ function teamName(i) {
 }
 
 function matchDone(m) {
-  return m.s1 !== null && m.s2 !== null && m.s1 !== m.s2;
+  // fin === false znači partija je još u tijeku (uživo zbroj) — ne broji se kao gotova
+  return m.s1 !== null && m.s2 !== null && m.s1 !== m.s2 && m.fin !== false;
 }
 
 function roundDone(round) {
@@ -808,7 +809,10 @@ function matchEl(match, tableNo, statsBefore, target, onChange) {
     n2.className = 'name right' + (done && match.s2 > match.s1 ? ' winner' : '');
     if (match.s1 !== null && match.s2 !== null) {
       badge.style.display = '';
-      if (match.s1 === match.s2) {
+      if (match.fin === false) {
+        badge.className = 'badge';
+        badge.textContent = '⏳ U tijeku — ' + match.s1 + ' : ' + match.s2;
+      } else if (match.s1 === match.s2) {
         badge.className = 'badge warn';
         badge.textContent = 'Rezultat ne može biti neriješen — igra se dok netko ne pređe ' + target + '.';
       } else if (Math.max(match.s1, match.s2) < target) {
@@ -827,6 +831,7 @@ function matchEl(match, tableNo, statsBefore, target, onChange) {
   function handle() {
     match.s1 = i1.value === '' ? null : Math.max(0, Number(i1.value));
     match.s2 = i2.value === '' ? null : Math.max(0, Number(i2.value));
+    match.fin = true;  // ručni upis = konačan rezultat
     save();
     refresh();
     onChange();
