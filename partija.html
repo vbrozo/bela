@@ -185,6 +185,24 @@ function save() { localStorage.setItem(KEY, JSON.stringify(st)); }
 
 let lastWritten = null;
 
+let roundLocked = false;
+
+function applyTournament(t) {
+  const status = document.getElementById('syncStatus');
+  if (!t) { status.textContent = 'Turnir nije pronađen — provjeri vezu.'; return; }
+  const r = Number(KOLO), m = Number(STOL);
+  const match = t.rounds && t.rounds[r] && t.rounds[r][m];
+  if (!match) { status.textContent = 'Utakmica nije pronađena.'; return; }
+  const name = i => (t.teams && t.teams[i] && t.teams[i].trim()) ? t.teams[i].trim() : ('Ekipa ' + (i + 1));
+  const a = name(match.t1), b = name(match.t2), tgt = t.target || 1501;
+  // zaključaj ovo kolo za igrače čim je generirano neko kasnije kolo
+  const locked = Array.isArray(t.rounds) && r < t.rounds.length - 1;
+  if (a === st.teamA && b === st.teamB && tgt === st.target && locked === roundLocked) return;
+  st.teamA = a; st.teamB = b; st.target = tgt; roundLocked = locked;
+  save();
+  render();
+}
+
 function setupHeaderFromTournament() {
   if (!linked) {
     document.getElementById('setupCard').style.display = '';
@@ -194,21 +212,8 @@ function setupHeaderFromTournament() {
     document.getElementById('backLink').style.display = 'none';
     return;
   }
-  // poveži se s turnirom: dohvati nazive i granicu
-  BelaSync.get(TURNIR).then(t => {
-    if (!t) { document.getElementById('syncStatus').textContent =
-      'Turnir nije pronađen — provjeri vezu.'; return; }
-    const r = Number(KOLO), m = Number(STOL);
-    const match = t.rounds && t.rounds[r] && t.rounds[r][m];
-    if (!match) { document.getElementById('syncStatus').textContent =
-      'Utakmica nije pronađena.'; return; }
-    const name = i => (t.teams && t.teams[i] && t.teams[i].trim()) ? t.teams[i].trim() : ('Ekipa ' + (i + 1));
-    st.teamA = name(match.t1);
-    st.teamB = name(match.t2);
-    st.target = t.target || 1501;
-    save();
-    render();
-  });
+  // prati turnir uživo: nazivi, granica i je li kolo zaključano
+  BelaSync.watch(TURNIR, applyTournament);
 }
 
 document.getElementById('teamAInput')?.addEventListener('input', e => { st.teamA = e.target.value; save(); render(); });
@@ -420,10 +425,29 @@ function render() {
 
   // auto-upis u turnir kad je partija gotova
   maybeWrite(g);
+  applyLock();
+}
+
+// Zaključano kolo: brojač postaje samo za čitanje (izmjene radi samo organizator).
+function applyLock() {
+  const footer = document.querySelector('.footer-bar');
+  if (footer) footer.style.display = roundLocked ? 'none' : '';
+  if (!roundLocked) return;
+  const main = document.querySelector('main');
+  main.querySelectorAll('input').forEach(i => { i.readOnly = true; });
+  main.querySelectorAll('select').forEach(s => { s.disabled = true; });
+  main.querySelectorAll('.del').forEach(d => { d.style.display = 'none'; });
+  main.querySelectorAll('.zv-add, .zv-chip, .pill').forEach(p => {
+    p.style.pointerEvents = 'none'; p.style.opacity = '0.6';
+  });
+  const status = document.getElementById('syncStatus');
+  status.className = 'sync-status';
+  status.textContent = '🔒 Ovo kolo je zaključano (igra se sljedeće kolo). Za ispravak se javi organizatoru.';
 }
 
 function maybeWrite(g) {
   const status = document.getElementById('syncStatus');
+  if (linked && roundLocked) return;  // zaključano kolo — bez upisa (poruku postavlja applyLock)
   if (!linked) {
     if (g.finished) {
       status.className = 'sync-status ok';

@@ -245,19 +245,6 @@
     color: var(--bg-light); text-decoration: none; font-weight: 600;
   }
   .scorer-link:hover { text-decoration: underline; }
-  .qr-box {
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px; margin: 4px 0 12px;
-    background: var(--card-soft); border: 1px solid var(--border); border-radius: 10px;
-  }
-  .qr-box img {
-    width: 96px; height: 96px; flex-shrink: 0;
-    background: #fff; border-radius: 6px;
-  }
-  .qr-box .qr-meta { min-width: 0; }
-  .qr-box .qr-meta .qr-tbl { font-weight: 700; font-size: 0.9rem; }
-  .qr-box .qr-meta .qr-vs { color: var(--muted); font-size: 0.82rem; margin: 2px 0 6px; }
-  .qr-box .qr-meta .scorer-link { margin: 0; }
   .share-code { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; color: var(--bg); }
   .share-link { word-break: break-all; font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
 
@@ -896,32 +883,6 @@ function renderRoundsList(list) {
     const statsBefore = winsBeforeRound(r);
     round.forEach((m, i) => {
       card.appendChild(matchEl(m, i + 1, statsBefore, state.target, updateRoundsDerived));
-      if (state.turnirId) {
-        const url = tableUrl(r, i);
-        const box = document.createElement('div');
-        box.className = 'qr-box';
-        const img = document.createElement('img');
-        img.src = qrSrc(url, 96);
-        img.alt = 'QR Stol ' + (i + 1);
-        img.loading = 'lazy';
-        const meta = document.createElement('div');
-        meta.className = 'qr-meta';
-        const tbl = document.createElement('div');
-        tbl.className = 'qr-tbl';
-        tbl.textContent = 'Stol ' + (i + 1);
-        const vs = document.createElement('div');
-        vs.className = 'qr-vs';
-        vs.textContent = teamName(m.t1) + ' vs ' + teamName(m.t2);
-        const a = document.createElement('a');
-        a.className = 'scorer-link';
-        a.href = url;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        a.textContent = '🃏 Skeniraj ili otvori brojač';
-        meta.append(tbl, vs, a);
-        box.append(img, meta);
-        card.appendChild(box);
-      }
     });
 
     // ispis QR kodova ovog kola (samo admin)
