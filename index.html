@@ -195,6 +195,23 @@
   tr.p3 td .pos, tr.p4 td .pos { background: var(--silver); color: #fff; }
   .tb-note { font-size: 0.75rem; color: var(--muted); margin-top: 8px; line-height: 1.5; }
 
+  .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  td.pts-col { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+  td.form-col { white-space: nowrap; }
+  .frm {
+    display: inline-block; width: 18px; height: 18px; line-height: 18px;
+    border-radius: 50%; font-size: 0.68rem; font-weight: 800; margin: 0 1px;
+    background: #eef1ef; color: var(--muted);
+  }
+  .frm.w { background: var(--win); color: #fff; }
+  .frm.l { background: var(--accent); color: #fff; }
+  .xtable { font-size: 0.78rem; }
+  .xtable th, .xtable td { padding: 6px 5px; white-space: nowrap; }
+  .xtable td.team-name { font-size: 0.8rem; }
+  .xtable td.self { color: var(--border); }
+  .xtable td.w { background: #dcefe2; color: var(--win); font-weight: 700; }
+  .xtable td.l { background: #fbe4e8; color: var(--accent); font-weight: 600; }
+
   .round-title {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 4px;
@@ -994,6 +1011,34 @@ function renderRounds() {
 }
 
 /* ---------- tablica ---------- */
+/* forma ekipe po kolima: 'w' | 'l' | null (nije igrano/završeno) */
+function teamForm(team) {
+  return state.rounds.map(round => {
+    const m = round.find(x => (x.t1 === team || x.t2 === team) && matchDone(x));
+    if (!m) return null;
+    return ((m.t1 === team) ? m.s1 > m.s2 : m.s2 > m.s1) ? 'w' : 'l';
+  });
+}
+
+function formHtml(team) {
+  return teamForm(team).map(f =>
+    f === 'w' ? '<span class="frm w">✓</span>' :
+    f === 'l' ? '<span class="frm l">✗</span>' :
+                '<span class="frm">·</span>'
+  ).join('');
+}
+
+/* međusobni rezultati: mapa "a-b" -> [bodovi a, bodovi b] */
+function h2hMap() {
+  const map = {};
+  allMatches().forEach(m => {
+    if (!matchDone(m)) return;
+    map[m.t1 + '-' + m.t2] = [m.s1, m.s2];
+    map[m.t2 + '-' + m.t1] = [m.s2, m.s1];
+  });
+  return map;
+}
+
 function renderStandings() {
   const wrap = document.getElementById('standingsContent');
   wrap.innerHTML = '';
@@ -1010,11 +1055,13 @@ function renderStandings() {
   card.className = 'card';
   card.innerHTML = '<h2>' + (finished ? 'Poredak nakon ' + state.numRounds + ' kola' : 'Tablica nakon ' +
     state.rounds.filter(roundDone).length + '. kola') + '</h2>' +
-    '<p class="hint">Omjer = pobjede–porazi · Buchholz = zbroj pobjeda svih protivnika · +/- = razlika osvojenih i primljenih bodova' +
+    '<p class="hint">Omjer = pobjede–porazi · Buchholz = zbroj pobjeda svih protivnika · +/- = razlika osvojenih i primljenih bodova · Forma = ishod po kolima' +
     (finished ? ' · 1. i 2. idu u finale, 3. i 4. igraju za 3. mjesto' : '') + '</p>';
 
+  const scroll = document.createElement('div');
+  scroll.className = 'tbl-scroll';
   const table = document.createElement('table');
-  table.innerHTML = '<thead><tr><th>#</th><th class="team-name">Ekipa</th><th>Omjer</th><th>Buchholz</th><th>+/-</th></tr></thead>';
+  table.innerHTML = '<thead><tr><th>#</th><th class="team-name">Ekipa</th><th>Omjer</th><th>Buchholz</th><th>+/-</th><th>Bodovi</th><th>Forma</th></tr></thead>';
   const tbody = document.createElement('tbody');
   let anyTiebreak = false;
   st.forEach((s, i) => {
@@ -1026,11 +1073,14 @@ function renderStandings() {
       '<td class="team-name">' + teamName(s.team) + (s.tiebreak ? ' *' : '') + '</td>' +
       '<td><b>' + s.wins + '–' + s.losses + '</b></td>' +
       '<td>' + s.buchholz + '</td>' +
-      '<td>' + (s.plus - s.minus > 0 ? '+' : '') + (s.plus - s.minus) + '</td>';
+      '<td><b>' + (s.plus - s.minus > 0 ? '+' : '') + (s.plus - s.minus) + '</b></td>' +
+      '<td class="pts-col">' + s.plus + ':' + s.minus + '</td>' +
+      '<td class="form-col">' + formHtml(s.team) + '</td>';
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
-  card.appendChild(table);
+  scroll.appendChild(table);
+  card.appendChild(scroll);
 
   if (anyTiebreak) {
     const note = document.createElement('p');
@@ -1038,6 +1088,47 @@ function renderStandings() {
     note.textContent = '* Izjednačene po pobjedama — redoslijed odlučuju: 1) međusobni susret (ako su igrale), 2) Buchholz (zbroj pobjeda svih protivnika), 3) razlika bodova (+/-).';
     card.appendChild(note);
   }
+  wrap.appendChild(card);
+
+  renderCrossTable(wrap, st);
+}
+
+/* križna tablica međusobnih susreta */
+function renderCrossTable(wrap, st) {
+  const h2h = h2hMap();
+  if (Object.keys(h2h).length === 0) return;
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h2>Međusobni susreti</h2>' +
+    '<p class="hint">Rezultat iz perspektive ekipe u retku — zeleno = pobjeda, crveno = poraz.</p>';
+
+  const scroll = document.createElement('div');
+  scroll.className = 'tbl-scroll';
+  const table = document.createElement('table');
+  table.className = 'xtable';
+
+  let head = '<thead><tr><th class="team-name">Ekipa</th>';
+  st.forEach((_, j) => { head += '<th>' + (j + 1) + '.</th>'; });
+  head += '</tr></thead>';
+  table.innerHTML = head;
+
+  const tbody = document.createElement('tbody');
+  st.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    let html = '<td class="team-name">' + (i + 1) + '. ' + teamName(row.team) + '</td>';
+    st.forEach((col, j) => {
+      if (i === j) { html += '<td class="self">—</td>'; return; }
+      const r = h2h[row.team + '-' + col.team];
+      if (!r) { html += '<td></td>'; return; }
+      html += '<td class="' + (r[0] > r[1] ? 'w' : 'l') + '">' + r[0] + ':' + r[1] + '</td>';
+    });
+    tr.innerHTML = html;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  scroll.appendChild(table);
+  card.appendChild(scroll);
   wrap.appendChild(card);
 }
 
