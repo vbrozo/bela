@@ -131,6 +131,7 @@ function loadState() {
       const s = Object.assign(defaultState(), JSON.parse(raw));
       // ranije spremljena prazna imena popuni zadanim ekipama
       s.teams = s.teams.map((n, i) => (n && n.trim()) ? n : DEFAULT_TEAMS[i]);
+      s.rounds = normRounds(s.rounds);
       return s;
     }
   } catch (e) {}
@@ -149,6 +150,13 @@ function save() {
   if (writer) BelaSync.push(state.turnirId, state);
 }
 
+/* Firebase ne sprema null vrijednosti pa neodigrani mečevi stignu bez s1/s2 —
+   vrati ih na null da ostatak koda radi isto kao s lokalnim stanjem. */
+function normRounds(rounds) {
+  return (rounds || []).map(round => (round || []).map(m =>
+    Object.assign({}, m, {s1: m.s1 ?? null, s2: m.s2 ?? null})));
+}
+
 function watchRemote() {
   if (!state.turnirId) return;
   BelaSync.watch(state.turnirId, remote => {
@@ -158,6 +166,7 @@ function watchRemote() {
     applyingRemote = true;
     const id = state.turnirId;
     state = Object.assign(defaultState(), remote);
+    state.rounds = normRounds(state.rounds);
     state.teams = state.teams.map((n, i) => (n && n.trim()) ? n : DEFAULT_TEAMS[i]);
     state.turnirId = id;
     state.shared = true;
@@ -737,7 +746,7 @@ function teamMatches(team) {
   return list;
 }
 
-function renderTeamMatches(wrap) {
+function renderTeamMatches(wrap, st) {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h2>Mečevi ekipe</h2>' +
@@ -746,18 +755,25 @@ function renderTeamMatches(wrap) {
 
   if (statTeam !== null) {
     const games = teamMatches(statTeam);
-    const done = games.filter(g => g.done);
-    const wins = done.filter(g => g.my > g.their).length;
-    const losses = done.length - wins;
-    const ptsFor = done.reduce((s, g) => s + g.my, 0);
+    const s = st.find(x => x.team === statTeam);
+    const diff = s.plus - s.minus;
 
-    const sum = document.createElement('div');
-    sum.className = 'sum-grid';
-    sum.innerHTML =
-      '<div class="sum-box"><b>' + wins + '</b><span>Pobjede</span></div>' +
-      '<div class="sum-box"><b>' + losses + '</b><span>Porazi</span></div>' +
-      '<div class="sum-box"><b>' + ptsFor + '</b><span>Bodova za</span></div>';
-    card.appendChild(sum);
+    const sum1 = document.createElement('div');
+    sum1.className = 'sum-grid';
+    sum1.innerHTML =
+      '<div class="sum-box"><b>' + s.played + '</b><span>Mečevi</span></div>' +
+      '<div class="sum-box"><b>' + s.wins + '</b><span>Pobjede</span></div>' +
+      '<div class="sum-box"><b>' + s.losses + '</b><span>Porazi</span></div>';
+    card.appendChild(sum1);
+
+    const sum2 = document.createElement('div');
+    sum2.className = 'sum-grid four';
+    sum2.innerHTML =
+      '<div class="sum-box"><b>' + s.plus + '</b><span>Bodovi za</span></div>' +
+      '<div class="sum-box"><b>' + s.minus + '</b><span>Bodovi protiv</span></div>' +
+      '<div class="sum-box"><b>' + (diff > 0 ? '+' : '') + diff + '</b><span>+/-</span></div>' +
+      '<div class="sum-box"><b>' + s.buchholz + '</b><span>Buchholz</span></div>';
+    card.appendChild(sum2);
 
     if (!games.length) {
       const p = document.createElement('div');
@@ -855,7 +871,7 @@ function renderStats() {
     return;
   }
   const st = standings();
-  renderTeamMatches(wrap);
+  renderTeamMatches(wrap, st);
   renderCrossTable(wrap, st);
   renderH2H(wrap, st);
 }
