@@ -57,11 +57,11 @@
   .two .sep { text-align: center; color: var(--muted); }
   .zv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .zv-col .zv-name { font-size: 0.82rem; font-weight: 600; text-align: center; margin-bottom: 6px; }
-  .zv-btns { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+  .zv-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .zv-add {
-    flex: 1 1 44px; min-width: 44px; border: 1.5px solid var(--border); background: #fff;
-    color: var(--text); padding: 9px 4px; border-radius: 9px; font-size: 0.85rem;
-    font-weight: 600; cursor: pointer;
+    border: 1.5px solid var(--border); background: #fff;
+    color: var(--text); padding: 15px 4px; border-radius: 10px; font-size: 1.05rem;
+    font-weight: 700; cursor: pointer;
   }
   .zv-add:hover { border-color: var(--bg-light); }
   .zv-add:active { background: var(--bg); color: #fff; border-color: var(--bg); }
