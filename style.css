@@ -198,12 +198,6 @@
   }
   .frm.w { background: var(--win); color: #fff; }
   .frm.l { background: var(--accent); color: #fff; }
-  .xtable { font-size: 0.78rem; }
-  .xtable th, .xtable td { padding: 6px 5px; white-space: nowrap; }
-  .xtable td.team-name { font-size: 0.8rem; }
-  .xtable td.self { color: var(--border); }
-  .xtable td.w { background: #dcefe2; color: var(--win); font-weight: 700; }
-  .xtable td.l { background: #fbe4e8; color: var(--accent); font-weight: 600; }
 
   .round-title {
     display: flex; align-items: center; justify-content: space-between;

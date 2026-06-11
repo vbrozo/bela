@@ -619,8 +619,6 @@ function formHtml(team) {
   ).join('');
 }
 
-function h2hMap() { return Turnir.h2hMap(state.rounds); }
-
 function renderStandings() {
   const wrap = document.getElementById('standingsContent');
   wrap.innerHTML = '';
@@ -670,45 +668,6 @@ function renderStandings() {
     note.textContent = '* Izjednačene po pobjedama — redoslijed odlučuju: 1) međusobni susret (ako su igrale), 2) Buchholz (zbroj pobjeda svih protivnika), 3) razlika bodova (+/-).';
     card.appendChild(note);
   }
-  wrap.appendChild(card);
-}
-
-/* križna tablica međusobnih susreta */
-function renderCrossTable(wrap, st) {
-  const h2h = h2hMap();
-  if (Object.keys(h2h).length === 0) return;
-
-  const card = document.createElement('div');
-  card.className = 'card';
-  card.innerHTML = '<h2>Međusobni susreti</h2>' +
-    '<p class="hint">Rezultat iz perspektive ekipe u retku — zeleno = pobjeda, crveno = poraz.</p>';
-
-  const scroll = document.createElement('div');
-  scroll.className = 'tbl-scroll';
-  const table = document.createElement('table');
-  table.className = 'xtable';
-
-  let head = '<thead><tr><th class="team-name">Ekipa</th>';
-  st.forEach((_, j) => { head += '<th>' + (j + 1) + '.</th>'; });
-  head += '</tr></thead>';
-  table.innerHTML = head;
-
-  const tbody = document.createElement('tbody');
-  st.forEach((row, i) => {
-    const tr = document.createElement('tr');
-    let html = '<td class="team-name">' + (i + 1) + '. ' + teamName(row.team) + '</td>';
-    st.forEach((col, j) => {
-      if (i === j) { html += '<td class="self">—</td>'; return; }
-      const r = h2h[row.team + '-' + col.team];
-      if (!r) { html += '<td></td>'; return; }
-      html += '<td class="' + (r[0] > r[1] ? 'w' : 'l') + '">' + r[0] + ':' + r[1] + '</td>';
-    });
-    tr.innerHTML = html;
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
-  scroll.appendChild(table);
-  card.appendChild(scroll);
   wrap.appendChild(card);
 }
 
@@ -893,7 +852,6 @@ function renderStats() {
   }
   const st = standings();
   renderTeamMatches(wrap, st);
-  renderCrossTable(wrap, st);
   renderH2H(wrap, st);
 }
 
