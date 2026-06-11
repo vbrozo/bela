@@ -485,6 +485,9 @@ function updateRoundsDerived() {
   renderFinals();
 }
 
+/* otvoreno/zatvoreno po kolu; bez izričitog odabira otvoreno je samo zadnje kolo */
+const roundOpen = {};
+
 function renderRoundsList(list) {
   list.innerHTML = '';
   state.rounds.forEach((round, r) => {
@@ -492,20 +495,24 @@ function renderRoundsList(list) {
     card.className = 'card';
 
     const title = document.createElement('div');
-    title.className = 'round-title';
-    title.innerHTML = '<h2>' + (r + 1) + '. kolo</h2>' +
+    title.className = 'round-title toggle';
+    title.innerHTML = '<h2><span class="caret">▾</span>' + (r + 1) + '. kolo</h2>' +
       '<span class="status" id="round-status-' + r + '"></span>';
     card.appendChild(title);
+
+    const body = document.createElement('div');
+    body.className = 'round-body';
+    card.appendChild(body);
 
     const hint = document.createElement('p');
     hint.className = 'hint';
     hint.textContent = 'Do ' + state.target + ' · pobjeda = 1 bod · broj u zagradi je trenutni broj bodova ekipe';
-    card.appendChild(hint);
+    body.appendChild(hint);
 
     const statsBefore = winsBeforeRound(r);
     const roundIsDone = roundDone(round);
     round.forEach((m, i) => {
-      card.appendChild(matchEl(m, i + 1, statsBefore, state.target, updateRoundsDerived));
+      body.appendChild(matchEl(m, i + 1, statsBefore, state.target, updateRoundsDerived));
       if (state.turnirId && !roundIsDone) {
         const a = document.createElement('a');
         a.className = 'scorer-link';
@@ -513,7 +520,7 @@ function renderRoundsList(list) {
         a.target = '_blank';
         a.rel = 'noopener';
         a.textContent = '🃏 Stol ' + (i + 1) + ' — upiši partiju (' + teamName(m.t1) + ' / ' + teamName(m.t2) + ')';
-        card.appendChild(a);
+        body.appendChild(a);
       }
     });
 
@@ -523,7 +530,7 @@ function renderRoundsList(list) {
       printBtn.className = 'btn secondary';
       printBtn.textContent = '🖨️ QR kodovi za stolove (ispis)';
       printBtn.addEventListener('click', () => printRoundQR(r));
-      card.appendChild(printBtn);
+      body.appendChild(printBtn);
     }
 
     // zadnje kolo se može obrisati (npr. za ponovno sparivanje)
@@ -538,7 +545,7 @@ function renderRoundsList(list) {
         save();
         renderAll();
       });
-      card.appendChild(delBtn);
+      body.appendChild(delBtn);
     }
     if (r === 0 && state.rounds.length === 1) {
       const delBtn = document.createElement('button');
@@ -551,8 +558,18 @@ function renderRoundsList(list) {
         save();
         renderAll();
       });
-      card.appendChild(delBtn);
+      body.appendChild(delBtn);
     }
+
+    // expand/collapse: klik na naslov; pamti se odabir do osvježenja
+    function setOpen(open) {
+      roundOpen[r] = open;
+      body.style.display = open ? '' : 'none';
+      title.querySelector('.caret').textContent = open ? '▾' : '▸';
+    }
+    title.addEventListener('click', () => setOpen(body.style.display === 'none'));
+    setOpen(roundOpen[r] !== undefined ? roundOpen[r] : r === state.rounds.length - 1);
+
     list.appendChild(card);
     setRoundStatus(r);
   });

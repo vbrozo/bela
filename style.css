@@ -296,3 +296,10 @@
   @media (max-width: 520px) {
     .sum-grid.four { grid-template-columns: repeat(2, 1fr); }
   }
+
+  /* expand/collapse kola */
+  .round-title.toggle { cursor: pointer; user-select: none; }
+  .round-title .caret {
+    display: inline-block; width: 20px; color: var(--muted);
+    font-size: 0.9rem;
+  }
