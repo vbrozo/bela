@@ -332,6 +332,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="sync.js"></script>
+<script src="view.js"></script>
 <script>
 const STORAGE_KEY = 'efd-bela-v1';
 const TEAMS = 10;
@@ -1132,6 +1133,22 @@ function renderFinals() {
   renderPodium();
 }
 
+/* ---------- način prikaza ---------- */
+function applyMode() {
+  const wide = ViewMode.full();
+  const main = document.querySelector('main');
+  main.querySelectorAll('input').forEach(i => { i.readOnly = !wide; });
+  main.querySelectorAll('select').forEach(s => { s.disabled = !wide; });
+  main.querySelectorAll('.btn').forEach(b => { b.style.display = wide ? '' : 'none'; });
+  main.querySelectorAll('.scorer-link').forEach(a => { a.style.display = wide ? '' : 'none'; });
+  const share = document.getElementById('shareCard');
+  if (share) share.style.display = wide ? '' : 'none';
+  if (!wide) {
+    const draw = document.getElementById('drawCard');
+    if (draw) draw.style.display = 'none';
+  }
+}
+
 /* ---------- render sve ---------- */
 function renderAll() {
   renderTeams();
@@ -1140,7 +1157,11 @@ function renderAll() {
   renderStandings();
   renderFinals();
   renderShare();
+  applyMode();
 }
+
+/* skriveni okidač: tap na simbol u naslovu */
+ViewMode.arm(document.querySelectorAll('header .suit')[1], renderAll);
 
 /* ---------- inicijalizacija dijeljenja ---------- */
 function initSharing() {

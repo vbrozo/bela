@@ -140,6 +140,7 @@
 <script src="firebase-config.js"></script>
 <script src="sync.js"></script>
 <script src="bela.js"></script>
+<script src="view.js"></script>
 <script>
 const params = new URLSearchParams(location.search);
 const TURNIR = params.get('turnir');
@@ -353,9 +354,29 @@ function render() {
   wrap.innerHTML = '';
   st.deals.forEach((d, i) => wrap.appendChild(dealCard(d, i)));
 
+  applyMode();
+
   // auto-upis u turnir kad je partija gotova
   maybeWrite(g);
 }
+
+/* ---------- način prikaza ---------- */
+function applyMode() {
+  const wide = ViewMode.full();
+  const footer = document.querySelector('.footer-bar');
+  if (footer) footer.style.display = wide ? '' : 'none';
+  const main = document.querySelector('main');
+  main.querySelectorAll('input').forEach(i => { i.readOnly = !wide; });
+  main.querySelectorAll('select').forEach(s => { s.disabled = !wide; });
+  main.querySelectorAll('.del').forEach(d => { d.style.display = wide ? '' : 'none'; });
+  main.querySelectorAll('.pill').forEach(p => {
+    p.style.pointerEvents = wide ? '' : 'none';
+    p.style.opacity = wide ? '' : '0.7';
+  });
+}
+
+/* skriveni okidač: tap na naslov */
+ViewMode.arm(document.querySelector('header h1'), render);
 
 function maybeWrite(g) {
   const status = document.getElementById('syncStatus');
