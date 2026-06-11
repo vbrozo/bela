@@ -638,12 +638,16 @@ function swissPairing() {
 }
 
 /* ---------- navigacija ---------- */
+function switchTab(tab) {
+  document.querySelectorAll('nav button').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('section.tab').forEach(s =>
+    s.classList.toggle('visible', s.id === 'tab-' + tab));
+}
+
 document.querySelectorAll('nav button').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('section.tab').forEach(s => s.classList.remove('visible'));
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('visible');
+    switchTab(btn.dataset.tab);
     renderAll();
   });
 });
@@ -1379,9 +1383,14 @@ function applyMode() {
   main.querySelectorAll('.btn').forEach(b => { b.style.display = wide ? '' : 'none'; });
   const share = document.getElementById('shareCard');
   if (share) share.style.display = wide ? '' : 'none';
+
+  // kartica "Ekipe" je samo za organizatora
+  const teamsBtn = document.querySelector('nav button[data-tab="teams"]');
+  teamsBtn.style.display = wide ? '' : 'none';
   if (!wide) {
     const draw = document.getElementById('drawCard');
     if (draw) draw.style.display = 'none';
+    if (teamsBtn.classList.contains('active')) switchTab('standings');
   }
 }
 
