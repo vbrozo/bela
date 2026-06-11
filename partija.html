@@ -189,6 +189,13 @@ let lastWritten = null;
 
 let roundLocked = false;
 
+function matchFinished(m) {
+  return m && m.s1 != null && m.s2 != null && m.s1 !== m.s2 && m.fin !== false;
+}
+function isRoundDone(round) {
+  return Array.isArray(round) && round.length > 0 && round.every(matchFinished);
+}
+
 function applyTournament(t) {
   const status = document.getElementById('syncStatus');
   if (!t) { status.textContent = 'Turnir nije pronađen — provjeri vezu.'; return; }
@@ -197,8 +204,9 @@ function applyTournament(t) {
   if (!match) { status.textContent = 'Utakmica nije pronađena.'; return; }
   const name = i => (t.teams && t.teams[i] && t.teams[i].trim()) ? t.teams[i].trim() : ('Ekipa ' + (i + 1));
   const a = name(match.t1), b = name(match.t2), tgt = t.target || 1501;
-  // zaključaj ovo kolo za igrače čim je generirano neko kasnije kolo
-  const locked = Array.isArray(t.rounds) && r < t.rounds.length - 1;
+  // zaključaj kad je kolo gotovo (svi stolovi završili) ili je krenulo kasnije kolo
+  const laterRound = Array.isArray(t.rounds) && r < t.rounds.length - 1;
+  const locked = laterRound || isRoundDone(t.rounds && t.rounds[r]);
   if (a === st.teamA && b === st.teamB && tgt === st.target && locked === roundLocked) return;
   st.teamA = a; st.teamB = b; st.target = tgt; roundLocked = locked;
   save();
@@ -462,7 +470,7 @@ function applyAccess() {
     addBtn.style.display = 'none';
     unlockBtn.style.display = 'none';
     status.className = 'sync-status';
-    status.textContent = '🔒 Ovo kolo je zaključano (igra se sljedeće kolo). Za ispravak se javi organizatoru.';
+    status.textContent = '🔒 Ovo kolo je zaključano. Za ispravak se javi organizatoru.';
     return;
   }
   if (linked && !canWrite()) {  // treba kod za upis

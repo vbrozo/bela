@@ -881,9 +881,10 @@ function renderRoundsList(list) {
     card.appendChild(hint);
 
     const statsBefore = winsBeforeRound(r);
+    const roundIsDone = roundDone(round);
     round.forEach((m, i) => {
       card.appendChild(matchEl(m, i + 1, statsBefore, state.target, updateRoundsDerived));
-      if (state.turnirId) {
+      if (state.turnirId && !roundIsDone) {
         const a = document.createElement('a');
         a.className = 'scorer-link';
         a.href = tableUrl(r, i);
@@ -894,8 +895,8 @@ function renderRoundsList(list) {
       }
     });
 
-    // ispis QR kodova ovog kola (samo admin)
-    if (state.turnirId) {
+    // ispis QR kodova ovog kola (samo admin, dok kolo nije gotovo)
+    if (state.turnirId && !roundIsDone) {
       const printBtn = document.createElement('button');
       printBtn.className = 'btn secondary';
       printBtn.textContent = '🖨️ QR kodovi za stolove (ispis)';
