@@ -544,7 +544,7 @@ function computeStats() {
    1. broj pobjeda
    2. međusobni susreti izjednačenih (pobjede u međusobnim)
    3. Buchholz (zbroj pobjeda protivnika)
-   4. ukupno osvojeni bodovi u beli
+   4. razlika bodova (+/-) = osvojeni − primljeni
 */
 function standings() {
   const stats = computeStats();
@@ -573,7 +573,7 @@ function standings() {
     tied.sort((a, b) =>
       h2h[b.team] - h2h[a.team] ||
       b.buchholz - a.buchholz ||
-      b.plus - a.plus ||
+      (b.plus - b.minus) - (a.plus - a.minus) ||
       teamName(a.team).localeCompare(teamName(b.team))
     );
     result.push(...tied);
@@ -1005,11 +1005,11 @@ function renderStandings() {
   card.className = 'card';
   card.innerHTML = '<h2>' + (finished ? 'Poredak nakon ' + state.numRounds + ' kola' : 'Tablica nakon ' +
     state.rounds.filter(roundDone).length + '. kola') + '</h2>' +
-    '<p class="hint">Omjer = pobjede–porazi · Buchholz = zbroj pobjeda svih protivnika · Bodovi = ukupno osvojeni bodovi u beli' +
+    '<p class="hint">Omjer = pobjede–porazi · Buchholz = zbroj pobjeda svih protivnika · +/- = razlika osvojenih i primljenih bodova' +
     (finished ? ' · 1. i 2. idu u finale, 3. i 4. igraju za 3. mjesto' : '') + '</p>';
 
   const table = document.createElement('table');
-  table.innerHTML = '<thead><tr><th>#</th><th class="team-name">Ekipa</th><th>Omjer</th><th>Buchholz</th><th>Bodovi</th></tr></thead>';
+  table.innerHTML = '<thead><tr><th>#</th><th class="team-name">Ekipa</th><th>Omjer</th><th>Buchholz</th><th>+/-</th></tr></thead>';
   const tbody = document.createElement('tbody');
   let anyTiebreak = false;
   st.forEach((s, i) => {
@@ -1021,7 +1021,7 @@ function renderStandings() {
       '<td class="team-name">' + teamName(s.team) + (s.tiebreak ? ' *' : '') + '</td>' +
       '<td><b>' + s.wins + '–' + s.losses + '</b></td>' +
       '<td>' + s.buchholz + '</td>' +
-      '<td>' + s.plus + '</td>';
+      '<td>' + (s.plus - s.minus > 0 ? '+' : '') + (s.plus - s.minus) + '</td>';
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
@@ -1030,7 +1030,7 @@ function renderStandings() {
   if (anyTiebreak) {
     const note = document.createElement('p');
     note.className = 'tb-note';
-    note.textContent = '* Izjednačene po pobjedama — redoslijed odlučuju: 1) međusobni susret (ako su igrale), 2) Buchholz (zbroj pobjeda svih protivnika), 3) ukupno osvojeni bodovi u beli.';
+    note.textContent = '* Izjednačene po pobjedama — redoslijed odlučuju: 1) međusobni susret (ako su igrale), 2) Buchholz (zbroj pobjeda svih protivnika), 3) razlika bodova (+/-).';
     card.appendChild(note);
   }
   wrap.appendChild(card);
