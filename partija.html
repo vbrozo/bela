@@ -380,6 +380,8 @@ ViewMode.arm(document.querySelector('header h1'), render);
 
 function maybeWrite(g) {
   const status = document.getElementById('syncStatus');
+  // samo otključani (admin) preglednik upisuje u turnir
+  if (linked && !ViewMode.full()) { status.textContent = ''; return; }
   if (!linked) {
     if (g.finished) {
       status.className = 'sync-status ok';

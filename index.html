@@ -337,6 +337,7 @@
 const STORAGE_KEY = 'efd-bela-v1';
 const TEAMS = 10;
 const FINAL_TARGET = 1001;
+const TURNIR_ID = 'efd-bela-2026';
 
 const DEFAULT_TEAMS = [
   'Punčec & Mlinarek',
@@ -386,18 +387,19 @@ function genId() {
 }
 
 function save() {
-  if (sharing && !applyingRemote && state.turnirId) state.updatedAt = Date.now();
+  // na server piše samo otključani (admin) preglednik; gledatelji samo čitaju
+  const writer = sharing && !applyingRemote && state.turnirId && ViewMode.full();
+  if (writer) state.updatedAt = Date.now();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  if (sharing && !applyingRemote && state.turnirId) {
-    BelaSync.push(state.turnirId, state);
-  }
+  if (writer) BelaSync.push(state.turnirId, state);
 }
 
 function watchRemote() {
   if (!state.turnirId) return;
   BelaSync.watch(state.turnirId, remote => {
     if (!remote) return;
-    if (remote.updatedAt && remote.updatedAt === state.updatedAt) return; // naš vlastiti upis
+    // preskoči vlastiti ili stariji upis (noviji uvijek pobjeđuje)
+    if (remote.updatedAt && state.updatedAt && remote.updatedAt <= state.updatedAt) return;
     applyingRemote = true;
     const id = state.turnirId;
     state = Object.assign(defaultState(), remote);
@@ -410,15 +412,18 @@ function watchRemote() {
   });
 }
 
+// Ručna "objavi sad": gurne trenutno lokalno stanje na server.
 function startSharing() {
   if (!BelaSync.configured()) {
     alert('Firebase nije konfiguriran. Ispuni firebase-config.js pa probaj ponovno.');
     return;
   }
-  if (!state.turnirId) state.turnirId = genId();
+  state.turnirId = state.turnirId || TURNIR_ID;
   state.shared = true;
   sharing = true;
-  save();
+  state.updatedAt = Date.now();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  BelaSync.push(state.turnirId, state);
   watchRemote();
   renderAll();
 }
@@ -435,22 +440,16 @@ function renderShare() {
   info.innerHTML = '';
 
   if (!BelaSync.configured()) {
-    hint.textContent = 'Za dijeljenje uživo upiši podatke svojeg Firebase projekta u firebase-config.js (upute su u toj datoteci).';
+    hint.textContent = 'Za prikaz uživo na drugim uređajima ispuni firebase-config.js (upute su u toj datoteci).';
     btn.style.display = 'none';
     return;
   }
-  if (!sharing) {
-    hint.textContent = 'Klikni da turnir postane dostupan online — parovi tada svojim mobitelima upisuju skor svake partije, a rezultat se sam zbraja u tablicu.';
-    btn.style.display = '';
-    btn.textContent = 'Podijeli turnir';
-    return;
-  }
-  hint.textContent = 'Turnir je online. Otvori utakmicu u kartici "Kola" i podijeli link "🃏 brojač" odgovarajućem paru.';
-  btn.style.display = 'none';
+  hint.textContent = 'Gledatelji koji otvore ovu poveznicu vide rezultate uživo (samo za čitanje). Skorove unosiš samo ti.';
   info.innerHTML =
-    '<p class="hint">Šifra turnira</p><div class="share-code">' + state.turnirId + '</div>' +
-    '<p class="hint" style="margin-top:10px;">Poveznica (organizator):</p>' +
-    '<div class="share-link">' + baseLink() + 'index.html?turnir=' + state.turnirId + '</div>';
+    '<p class="hint">Poveznica za gledatelje:</p>' +
+    '<div class="share-link">' + baseLink() + 'index.html?turnir=' + (state.turnirId || TURNIR_ID) + '</div>';
+  btn.style.display = '';
+  btn.textContent = '↻ Objavi trenutno stanje';
 }
 
 function teamName(i) {
@@ -1167,11 +1166,11 @@ ViewMode.arm(document.querySelectorAll('header .suit')[1], renderAll);
 function initSharing() {
   if (!BelaSync.configured()) return;
   const urlId = new URLSearchParams(location.search).get('turnir');
-  if (urlId) { state.turnirId = urlId; state.shared = true; }
-  if (state.shared && state.turnirId) {
-    sharing = true;
-    watchRemote();   // povuče zadnje stanje s poslužitelja i sluša promjene
-  }
+  // svi se automatski spoje na isti turnir: admin piše, gledatelji čitaju uživo
+  state.turnirId = urlId || state.turnirId || TURNIR_ID;
+  state.shared = true;
+  sharing = true;
+  watchRemote();   // povuče zadnje stanje s poslužitelja i sluša promjene
 }
 
 initSharing();
