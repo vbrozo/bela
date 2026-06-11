@@ -17,6 +17,7 @@
   <button data-tab="teams" class="active">Ekipe</button>
   <button data-tab="rounds">Kola</button>
   <button data-tab="standings">Tablica</button>
+  <button data-tab="stats">Statistika</button>
   <button data-tab="finals">Završnica</button>
 </nav>
 
@@ -70,6 +71,11 @@
   <!-- TABLICA -->
   <section class="tab" id="tab-standings">
     <div id="standingsContent"></div>
+  </section>
+
+  <!-- STATISTIKA -->
+  <section class="tab" id="tab-stats">
+    <div id="statsContent"></div>
   </section>
 
   <!-- ZAVRŠNICA -->
@@ -466,6 +472,7 @@ function updateRoundsDerived() {
   const action = document.getElementById('roundsAction');
   if (action) renderRoundsAction(action);
   renderStandings();
+  renderStats();
   renderFinals();
 }
 
@@ -655,8 +662,6 @@ function renderStandings() {
     card.appendChild(note);
   }
   wrap.appendChild(card);
-
-  renderCrossTable(wrap, st);
 }
 
 /* križna tablica međusobnih susreta */
@@ -696,6 +701,163 @@ function renderCrossTable(wrap, st) {
   scroll.appendChild(table);
   card.appendChild(scroll);
   wrap.appendChild(card);
+}
+
+/* ---------- statistika ---------- */
+let statTeam = null;          // odabrana ekipa za pregled mečeva
+let h2hA = null, h2hB = null; // odabrane ekipe za usporedbu
+
+function teamSelect(value, onChange, placeholder) {
+  const sel = document.createElement('select');
+  sel.innerHTML = '<option value="">' + (placeholder || '— odaberi ekipu —') + '</option>' +
+    state.teams.map((_, i) => '<option value="' + i + '">' + teamName(i) + '</option>').join('');
+  sel.value = value === null ? '' : value;
+  sel.addEventListener('change', () => onChange(sel.value === '' ? null : Number(sel.value)));
+  return sel;
+}
+
+/* svi mečevi ekipe kroz kola: {r, table, opp, my, their, done, live} */
+function teamMatches(team) {
+  const list = [];
+  state.rounds.forEach((round, r) => {
+    round.forEach((m, i) => {
+      if (m.t1 !== team && m.t2 !== team) return;
+      if (m.s1 === null || m.s2 === null) return; // nije ni počelo
+      const mine = m.t1 === team;
+      list.push({
+        r, table: i + 1,
+        opp: mine ? m.t2 : m.t1,
+        my: mine ? m.s1 : m.s2,
+        their: mine ? m.s2 : m.s1,
+        done: matchDone(m),
+        live: m.fin === false
+      });
+    });
+  });
+  return list;
+}
+
+function renderTeamMatches(wrap) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h2>Mečevi ekipe</h2>' +
+    '<p class="hint">Odaberi ekipu i vidi sve njene mečeve — zeleno = pobjeda, crveno = poraz.</p>';
+  card.appendChild(teamSelect(statTeam, v => { statTeam = v; renderStats(); }));
+
+  if (statTeam !== null) {
+    const games = teamMatches(statTeam);
+    const done = games.filter(g => g.done);
+    const wins = done.filter(g => g.my > g.their).length;
+    const losses = done.length - wins;
+    const ptsFor = done.reduce((s, g) => s + g.my, 0);
+
+    const sum = document.createElement('div');
+    sum.className = 'sum-grid';
+    sum.innerHTML =
+      '<div class="sum-box"><b>' + wins + '</b><span>Pobjede</span></div>' +
+      '<div class="sum-box"><b>' + losses + '</b><span>Porazi</span></div>' +
+      '<div class="sum-box"><b>' + ptsFor + '</b><span>Bodova za</span></div>';
+    card.appendChild(sum);
+
+    if (!games.length) {
+      const p = document.createElement('div');
+      p.className = 'empty-note';
+      p.textContent = 'Ekipa još nema započetih mečeva.';
+      card.appendChild(p);
+    }
+    games.forEach(g => {
+      const div = document.createElement('div');
+      div.className = 'smatch' + (g.done ? (g.my > g.their ? ' w' : ' l') : '');
+      div.innerHTML =
+        '<div><div class="opp">vs ' + teamName(g.opp) + '</div>' +
+        '<div class="meta">' + (g.r + 1) + '. kolo · Stol ' + g.table +
+        (g.live ? ' · ⏳ u tijeku' : '') + '</div></div>' +
+        '<div class="sc">' + g.my + ' : ' + g.their + '</div>';
+      card.appendChild(div);
+    });
+  }
+  wrap.appendChild(card);
+}
+
+function renderH2H(wrap, st) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h2>Head-to-head usporedba</h2>' +
+    '<p class="hint">Odaberi dvije ekipe i usporedi njihov međusobni meč i statistiku.</p>';
+
+  const row = document.createElement('div');
+  row.className = 'h2h-row';
+  row.appendChild(teamSelect(h2hA, v => { h2hA = v; renderStats(); }, '— ekipa A —'));
+  const vs = document.createElement('div');
+  vs.className = 'vs'; vs.textContent = 'vs';
+  row.appendChild(vs);
+  row.appendChild(teamSelect(h2hB, v => { h2hB = v; renderStats(); }, '— ekipa B —'));
+  card.appendChild(row);
+
+  if (h2hA !== null && h2hB !== null && h2hA !== h2hB) {
+    // međusobni meč
+    let mutual = null, mutualR = 0, mutualT = 0, live = false;
+    state.rounds.forEach((round, r) => {
+      round.forEach((m, i) => {
+        const pair = (m.t1 === h2hA && m.t2 === h2hB) || (m.t1 === h2hB && m.t2 === h2hA);
+        if (!pair || m.s1 === null || m.s2 === null) return;
+        mutual = m; mutualR = r; mutualT = i + 1; live = m.fin === false;
+      });
+    });
+
+    const score = document.createElement('div');
+    score.className = 'h2h-score';
+    if (mutual) {
+      const sA = mutual.t1 === h2hA ? mutual.s1 : mutual.s2;
+      const sB = mutual.t1 === h2hA ? mutual.s2 : mutual.s1;
+      score.innerHTML = sA + ' : ' + sB +
+        '<div class="meta">' + (mutualR + 1) + '. kolo · Stol ' + mutualT +
+        (live ? ' · ⏳ u tijeku'
+              : ' · pobjednik: ' + teamName(sA > sB ? h2hA : h2hB) +
+                ' (+' + Math.abs(sA - sB) + ')') + '</div>';
+    } else {
+      score.innerHTML = '— : —<div class="meta">još nisu igrale međusobno</div>';
+    }
+    card.appendChild(score);
+
+    // usporedna statistika
+    const posOf = t => st.findIndex(s => s.team === t);
+    const a = st[posOf(h2hA)], b = st[posOf(h2hB)];
+    const frm = t => Turnir.teamForm(state.rounds, t)
+      .map(f => f === 'w' ? '✓' : f === 'l' ? '✗' : '·').join(' ');
+    const rows = [
+      ['Plasman', (posOf(h2hA) + 1) + '.', (posOf(h2hB) + 1) + '.'],
+      ['Omjer', a.wins + '–' + a.losses, b.wins + '–' + b.losses],
+      ['Buchholz', a.buchholz, b.buchholz],
+      ['+/-', (a.plus - a.minus > 0 ? '+' : '') + (a.plus - a.minus),
+              (b.plus - b.minus > 0 ? '+' : '') + (b.plus - b.minus)],
+      ['Bodovi za', a.plus, b.plus],
+      ['Bodovi protiv', a.minus, b.minus],
+      ['Forma', frm(h2hA), frm(h2hB)]
+    ];
+    const table = document.createElement('table');
+    table.className = 'h2h-table';
+    table.innerHTML = '<thead><tr><th>' + teamName(h2hA) + '</th><th></th><th>' +
+      teamName(h2hB) + '</th></tr></thead>' +
+      '<tbody>' + rows.map(r =>
+        '<tr><td>' + r[1] + '</td><td class="lbl">' + r[0] + '</td><td>' + r[2] + '</td></tr>'
+      ).join('') + '</tbody>';
+    card.appendChild(table);
+  }
+  wrap.appendChild(card);
+}
+
+function renderStats() {
+  const wrap = document.getElementById('statsContent');
+  wrap.innerHTML = '';
+  if (state.rounds.length === 0) {
+    wrap.innerHTML = '<div class="card"><div class="empty-note">Statistika se popunjava kad krenu rezultati 1. kola.</div></div>';
+    return;
+  }
+  const st = standings();
+  renderTeamMatches(wrap);
+  renderCrossTable(wrap, st);
+  renderH2H(wrap, st);
 }
 
 /* ---------- završnica ---------- */
@@ -860,7 +1022,8 @@ function applyMode() {
   const wide = ViewMode.full();
   const main = document.querySelector('main');
   main.querySelectorAll('input').forEach(i => { i.readOnly = !wide; });
-  main.querySelectorAll('select').forEach(s => { s.disabled = !wide; });
+  // selecti u statistici su filtri za gledanje — uvijek aktivni
+  main.querySelectorAll('select').forEach(s => { s.disabled = !wide && !s.closest('#tab-stats'); });
   main.querySelectorAll('.btn').forEach(b => { b.style.display = wide ? '' : 'none'; });
   const share = document.getElementById('shareCard');
   if (share) share.style.display = wide ? '' : 'none';
@@ -881,6 +1044,7 @@ function renderAll() {
   renderDraw();
   renderRounds();
   renderStandings();
+  renderStats();
   renderFinals();
   renderShare();
   applyMode();

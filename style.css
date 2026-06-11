@@ -268,3 +268,31 @@
     .match .name { font-size: 0.83rem; }
     input[type="number"] { padding: 10px 2px; font-size: 1.05rem; }
   }
+
+  /* statistika: mečevi ekipe */
+  #tab-stats select { width: 100%; max-width: 340px; }
+  .sum-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+  .sum-box { background: var(--card-soft); border-radius: 10px; padding: 12px 6px; text-align: center; }
+  .sum-box b { display: block; font-size: 1.5rem; }
+  .sum-box span { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .smatch {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    border: 1.5px solid var(--border); border-left-width: 6px; border-radius: 11px;
+    padding: 10px 14px; margin-bottom: 8px; background: var(--card-soft);
+  }
+  .smatch.w { border-left-color: var(--win); }
+  .smatch.l { border-left-color: var(--accent); }
+  .smatch .opp { font-weight: 600; font-size: 0.95rem; }
+  .smatch .meta, .h2h-score .meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; font-weight: 500; }
+  .smatch .sc { font-size: 1.15rem; font-weight: 800; white-space: nowrap; }
+
+  /* statistika: head-to-head */
+  .h2h-row { display: grid; grid-template-columns: 1fr 30px 1fr; gap: 8px; align-items: center; margin-top: 4px; }
+  .h2h-row .vs { text-align: center; color: var(--muted); font-size: 0.8rem; }
+  .h2h-score { text-align: center; font-size: 1.7rem; font-weight: 800; margin: 16px 0 12px; }
+  .h2h-table th { font-size: 0.85rem; text-transform: none; color: var(--text); }
+  .h2h-table td { font-weight: 600; }
+  .h2h-table td.lbl {
+    color: var(--muted); font-weight: 500; font-size: 0.75rem;
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
