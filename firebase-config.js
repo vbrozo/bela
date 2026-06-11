@@ -12,9 +12,11 @@
       radi samo lokalno (na jednom uređaju, bez dijeljenja).
    ============================================================ */
 window.FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  databaseURL: "",
-  projectId: "",
-  appId: ""
+  apiKey: "AIzaSyCJuyr1Vzi6ElD2l2CcO3CeoaS_odDndjc",
+  authDomain: "bela-874f8.firebaseapp.com",
+  databaseURL: "https://bela-874f8-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "bela-874f8",
+  storageBucket: "bela-874f8.firebasestorage.app",
+  messagingSenderId: "319852694341",
+  appId: "1:319852694341:web:869dcafe8fde66939acc2c"
 };
