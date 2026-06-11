@@ -55,6 +55,23 @@
   .pill.on { background: var(--bg); color: #fff; border-color: var(--bg); font-weight: 600; }
   .two { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
   .two .sep { text-align: center; color: var(--muted); }
+  .zv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .zv-col .zv-name { font-size: 0.82rem; font-weight: 600; text-align: center; margin-bottom: 6px; }
+  .zv-btns { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+  .zv-add {
+    flex: 1 1 44px; min-width: 44px; border: 1.5px solid var(--border); background: #fff;
+    color: var(--text); padding: 9px 4px; border-radius: 9px; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer;
+  }
+  .zv-add:hover { border-color: var(--bg-light); }
+  .zv-add:active { background: var(--bg); color: #fff; border-color: var(--bg); }
+  .zv-chips { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: center; margin-top: 8px; min-height: 22px; }
+  .zv-chip {
+    border: none; background: var(--bg); color: #fff; padding: 5px 10px; border-radius: 14px;
+    font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  }
+  .zv-chip span { opacity: 0.7; margin-left: 2px; }
+  .zv-total { font-weight: 800; color: var(--bg); font-size: 0.95rem; margin-left: 2px; }
   input[type="number"] {
     width: 100%; padding: 11px 6px; border: 1.5px solid var(--border); border-radius: 9px;
     font-size: 1.1rem; text-align: center; font-weight: 700; background: #fff; color: var(--text);
@@ -150,7 +167,7 @@ const linked = TURNIR !== null && KOLO !== null && STOL !== null && BelaSync.con
 const KEY = 'efd-bela-partija-' + (TURNIR || 'local') + '-' + (KOLO ?? 'x') + '-' + (STOL ?? 'x');
 
 function emptyDeal() {
-  return { caller: null, trick0: '', trick1: '', zvanja0: 0, zvanja1: 0,
+  return { caller: null, trick0: '', trick1: '', zvanja0: 0, zvanja1: 0, zv0: [], zv1: [],
            zvanjaWinner: null, bela0: false, bela1: false, kapot: null };
 }
 
@@ -238,16 +255,16 @@ function dealCard(d, idx) {
   stih.appendChild(two);
   card.appendChild(stih);
 
-  // zvanja
+  // zvanja — tipke (može više, vezana zvanja se zbrajaju)
+  if (!Array.isArray(d.zv0)) d.zv0 = d.zvanja0 ? [Number(d.zvanja0)] : [];
+  if (!Array.isArray(d.zv1)) d.zv1 = d.zvanja1 ? [Number(d.zvanja1)] : [];
   const zv = document.createElement('div');
   zv.className = 'field';
-  zv.innerHTML = '<label>Zvanja (terca 20 · kvarta 50 · kvinta 100 · 4×J 200 · 4×9 150)</label>';
-  const ztwo = document.createElement('div'); ztwo.className = 'two';
-  const za = numInput(d.zvanja0, v => { d.zvanja0 = Number(v) || 0; save(); render(); });
-  const zb = numInput(d.zvanja1, v => { d.zvanja1 = Number(v) || 0; save(); render(); });
-  const zsep = document.createElement('div'); zsep.className = 'sep'; zsep.textContent = ':';
-  ztwo.append(za, zsep, zb);
-  zv.appendChild(ztwo);
+  zv.innerHTML = '<label>Zvanja (terca 20 · kvarta 50 · kvinta 100 · 4×9 150 · 4×J 200 · može više)</label>';
+  const zgrid = document.createElement('div'); zgrid.className = 'zv-grid';
+  zgrid.appendChild(zvanjaTeam(st.teamA, d.zv0, () => { d.zvanja0 = sum(d.zv0); save(); render(); }));
+  zgrid.appendChild(zvanjaTeam(st.teamB, d.zv1, () => { d.zvanja1 = sum(d.zv1); save(); render(); }));
+  zv.appendChild(zgrid);
   card.appendChild(zv);
 
   // bela
@@ -285,8 +302,10 @@ function comp(v) {
   return String(162 - n);
 }
 function normDeal(d) {
+  const z0 = Array.isArray(d.zv0) ? sum(d.zv0) : (Number(d.zvanja0) || 0);
+  const z1 = Array.isArray(d.zv1) ? sum(d.zv1) : (Number(d.zvanja1) || 0);
   return { caller: d.caller, trick0: Number(d.trick0) || 0, trick1: Number(d.trick1) || 0,
-    zvanja0: d.zvanja0, zvanja1: d.zvanja1, zvanjaWinner: d.zvanjaWinner,
+    zvanja0: z0, zvanja1: z1, zvanjaWinner: d.zvanjaWinner,
     bela0: d.bela0, bela1: d.bela1, kapot: d.kapot };
 }
 function validDeal(d) {
@@ -326,6 +345,50 @@ function numInput(val, onChange) {
   i.value = (val === '' || val === null || val === undefined) ? '' : val;
   i.addEventListener('change', () => onChange(i.value));
   return i;
+}
+
+const ZVANJA = [20, 50, 100, 150, 200];
+function sum(arr) { return (arr || []).reduce((a, b) => a + Number(b), 0); }
+
+// Kontrola zvanja jedne ekipe: tipke za dodavanje + uklonjivi čipovi + zbroj.
+function zvanjaTeam(name, list, onChange) {
+  const col = document.createElement('div');
+  col.className = 'zv-col';
+
+  const nm = document.createElement('div');
+  nm.className = 'zv-name';
+  nm.textContent = name;
+  col.appendChild(nm);
+
+  const btns = document.createElement('div');
+  btns.className = 'zv-btns';
+  ZVANJA.forEach(val => {
+    const b = document.createElement('button');
+    b.className = 'zv-add';
+    b.textContent = '+' + val;
+    b.addEventListener('click', () => { list.push(val); onChange(); });
+    btns.appendChild(b);
+  });
+  col.appendChild(btns);
+
+  const chips = document.createElement('div');
+  chips.className = 'zv-chips';
+  list.forEach((v, idx) => {
+    const c = document.createElement('button');
+    c.className = 'zv-chip';
+    c.innerHTML = v + ' <span>✕</span>';
+    c.title = 'Ukloni zvanje';
+    c.addEventListener('click', () => { list.splice(idx, 1); onChange(); });
+    chips.appendChild(c);
+  });
+  if (list.length) {
+    const tot = document.createElement('span');
+    tot.className = 'zv-total';
+    tot.textContent = '= ' + sum(list);
+    chips.appendChild(tot);
+  }
+  col.appendChild(chips);
+  return col;
 }
 
 function render() {
