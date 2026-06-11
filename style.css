@@ -1,0 +1,270 @@
+  :root {
+    --bg: #0f4d2e;
+    --bg-light: #166038;
+    --card: #ffffff;
+    --card-soft: #f4f7f5;
+    --accent: #c8102e;
+    --gold: #d4a017;
+    --silver: #9aa5b1;
+    --bronze: #b9722d;
+    --text: #1b2a22;
+    --muted: #6b7c72;
+    --win: #1c7c3c;
+    --border: #dde5e0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(160deg, var(--bg) 0%, var(--bg-light) 100%);
+    min-height: 100vh;
+    color: var(--text);
+    padding-bottom: 40px;
+  }
+  header {
+    text-align: center;
+    padding: 24px 16px 12px;
+    color: #fff;
+  }
+  header h1 { font-size: 1.6rem; letter-spacing: 0.5px; }
+  header h1 .suit { color: #ffd6dd; }
+  header p { color: #cfe5d8; font-size: 0.85rem; margin-top: 4px; }
+
+  nav {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    position: sticky;
+    top: 0;
+    background: rgba(15, 77, 46, 0.95);
+    backdrop-filter: blur(6px);
+    z-index: 10;
+  }
+  nav button {
+    border: none;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    padding: 9px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  nav button:hover { background: rgba(255,255,255,0.25); }
+  nav button.active { background: #fff; color: var(--bg); font-weight: 600; }
+
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+  section.tab { display: none; }
+  section.tab.visible { display: block; }
+
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  }
+  .card h2 { font-size: 1.15rem; margin-bottom: 4px; }
+  .card .hint { color: var(--muted); font-size: 0.85rem; margin-bottom: 14px; }
+
+  .teams-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 10px;
+  }
+  .team-row { display: flex; align-items: center; gap: 8px; }
+  .team-row .num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--bg);
+    color: #fff;
+    font-size: 0.8rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  input[type="text"], input[type="number"], select {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 0.95rem;
+    background: #fff;
+    color: var(--text);
+  }
+  input:focus, select:focus { outline: none; border-color: var(--bg-light); }
+  input[type="number"] {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 10px 4px;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .btn {
+    display: inline-block;
+    border: none;
+    background: var(--bg);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 12px;
+    margin-right: 8px;
+  }
+  .btn:hover { background: var(--bg-light); }
+  .btn.secondary { background: #e8eeea; color: var(--text); }
+  .btn.secondary:hover { background: #d8e2dc; }
+  .btn.danger { background: var(--accent); }
+  .btn.gold { background: var(--gold); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .settings-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .settings-row label { font-size: 0.9rem; font-weight: 600; }
+  .settings-row select { width: auto; }
+
+  .match {
+    display: grid;
+    grid-template-columns: 1fr 86px 20px 86px 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 11px;
+    margin-bottom: 10px;
+    background: var(--card-soft);
+  }
+  .match .table-tag {
+    grid-column: 1 / -1;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .match .name { font-weight: 600; font-size: 0.95rem; }
+  .match .name small { color: var(--muted); font-weight: 500; }
+  .match .name.right { text-align: right; }
+  .match .name.winner { color: var(--win); }
+  .match .name.winner::after { content: " ✓"; }
+  .match .name.right.winner::after { content: ""; }
+  .match .name.right.winner::before { content: "✓ "; }
+  .match .vs { text-align: center; color: var(--muted); font-size: 0.8rem; }
+  .match .badge {
+    grid-column: 1 / -1;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+  }
+  .match .badge.warn { color: var(--accent); font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; }
+  td.team-name, th.team-name { text-align: left; font-weight: 600; }
+  tr.p1 td, tr.p2 td { background: #fdf6e3; }
+  tr.p3 td, tr.p4 td { background: #f3f6fa; }
+  td .pos {
+    display: inline-block;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #e8eeea;
+    font-size: 0.78rem;
+    line-height: 22px;
+  }
+  tr.p1 td .pos, tr.p2 td .pos { background: var(--gold); color: #fff; }
+  tr.p3 td .pos, tr.p4 td .pos { background: var(--silver); color: #fff; }
+  .tb-note { font-size: 0.75rem; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+
+  .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  td.pts-col { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+  td.form-col { white-space: nowrap; }
+  .frm {
+    display: inline-block; width: 18px; height: 18px; line-height: 18px;
+    border-radius: 50%; font-size: 0.68rem; font-weight: 800; margin: 0 1px;
+    background: #eef1ef; color: var(--muted);
+  }
+  .frm.w { background: var(--win); color: #fff; }
+  .frm.l { background: var(--accent); color: #fff; }
+  .xtable { font-size: 0.78rem; }
+  .xtable th, .xtable td { padding: 6px 5px; white-space: nowrap; }
+  .xtable td.team-name { font-size: 0.8rem; }
+  .xtable td.self { color: var(--border); }
+  .xtable td.w { background: #dcefe2; color: var(--win); font-weight: 700; }
+  .xtable td.l { background: #fbe4e8; color: var(--accent); font-weight: 600; }
+
+  .round-title {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .round-title h2 { font-size: 1.15rem; }
+  .round-title .status {
+    font-size: 0.75rem; font-weight: 700;
+    padding: 4px 10px; border-radius: 12px;
+    background: #e8eeea; color: var(--muted);
+  }
+  .round-title .status.done { background: #dcefe2; color: var(--win); }
+
+  .empty-note {
+    text-align: center;
+    color: var(--muted);
+    padding: 24px 12px;
+    font-size: 0.92rem;
+  }
+
+  .set-score {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 10px 0 16px;
+  }
+  .podium {
+    text-align: center;
+    padding: 22px;
+    background: linear-gradient(135deg, #fdf2cc, #fbe39a);
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+  .podium .trophy { font-size: 2.6rem; }
+  .podium h3 { font-size: 1.4rem; margin-top: 6px; }
+  .podium .row { font-size: 1rem; margin-top: 8px; color: #6b5510; }
+  .podium .share-winners {
+    margin-top: 18px; border: none; background: var(--bg); color: #fff;
+    padding: 12px 24px; border-radius: 24px; font-size: 1rem; font-weight: 700; cursor: pointer;
+  }
+  .podium .share-winners:hover { background: var(--bg-light); }
+
+  .draw-row {
+    display: grid;
+    grid-template-columns: 1fr 24px 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .draw-row .vs { text-align: center; color: var(--muted); font-size: 0.8rem; }
+
+  .scorer-link {
+    display: inline-block; margin: -4px 0 12px; font-size: 0.85rem;
+    color: var(--bg-light); text-decoration: none; font-weight: 600;
+  }
+  .scorer-link:hover { text-decoration: underline; }
+  .share-code { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; color: var(--bg); }
+  .share-link { word-break: break-all; font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+
+  @media (max-width: 520px) {
+    .match { grid-template-columns: 1fr 76px 12px 76px 1fr; gap: 5px; }
+    .match .name { font-size: 0.83rem; }
+    input[type="number"] { padding: 10px 2px; font-size: 1.05rem; }
+  }

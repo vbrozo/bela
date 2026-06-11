@@ -4,278 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EFD Bela — turnir</title>
-<style>
-  :root {
-    --bg: #0f4d2e;
-    --bg-light: #166038;
-    --card: #ffffff;
-    --card-soft: #f4f7f5;
-    --accent: #c8102e;
-    --gold: #d4a017;
-    --silver: #9aa5b1;
-    --bronze: #b9722d;
-    --text: #1b2a22;
-    --muted: #6b7c72;
-    --win: #1c7c3c;
-    --border: #dde5e0;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(160deg, var(--bg) 0%, var(--bg-light) 100%);
-    min-height: 100vh;
-    color: var(--text);
-    padding-bottom: 40px;
-  }
-  header {
-    text-align: center;
-    padding: 24px 16px 12px;
-    color: #fff;
-  }
-  header h1 { font-size: 1.6rem; letter-spacing: 0.5px; }
-  header h1 .suit { color: #ffd6dd; }
-  header p { color: #cfe5d8; font-size: 0.85rem; margin-top: 4px; }
-
-  nav {
-    display: flex;
-    justify-content: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    padding: 10px 12px;
-    position: sticky;
-    top: 0;
-    background: rgba(15, 77, 46, 0.95);
-    backdrop-filter: blur(6px);
-    z-index: 10;
-  }
-  nav button {
-    border: none;
-    background: rgba(255,255,255,0.12);
-    color: #fff;
-    padding: 9px 16px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  nav button:hover { background: rgba(255,255,255,0.25); }
-  nav button.active { background: #fff; color: var(--bg); font-weight: 600; }
-
-  main { max-width: 860px; margin: 0 auto; padding: 16px; }
-  section.tab { display: none; }
-  section.tab.visible { display: block; }
-
-  .card {
-    background: var(--card);
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
-  }
-  .card h2 { font-size: 1.15rem; margin-bottom: 4px; }
-  .card .hint { color: var(--muted); font-size: 0.85rem; margin-bottom: 14px; }
-
-  .teams-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 10px;
-  }
-  .team-row { display: flex; align-items: center; gap: 8px; }
-  .team-row .num {
-    width: 26px; height: 26px;
-    border-radius: 50%;
-    background: var(--bg);
-    color: #fff;
-    font-size: 0.8rem;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  input[type="text"], input[type="number"], select {
-    width: 100%;
-    padding: 9px 11px;
-    border: 1.5px solid var(--border);
-    border-radius: 9px;
-    font-size: 0.95rem;
-    background: #fff;
-    color: var(--text);
-  }
-  input:focus, select:focus { outline: none; border-color: var(--bg-light); }
-  input[type="number"] {
-    text-align: center;
-    font-weight: 700;
-    font-size: 1.1rem;
-    padding: 10px 4px;
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
-  input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  .btn {
-    display: inline-block;
-    border: none;
-    background: var(--bg);
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 12px;
-    margin-right: 8px;
-  }
-  .btn:hover { background: var(--bg-light); }
-  .btn.secondary { background: #e8eeea; color: var(--text); }
-  .btn.secondary:hover { background: #d8e2dc; }
-  .btn.danger { background: var(--accent); }
-  .btn.gold { background: var(--gold); }
-  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-  .settings-row {
-    display: flex; align-items: center; gap: 10px;
-    margin-top: 14px;
-    flex-wrap: wrap;
-  }
-  .settings-row label { font-size: 0.9rem; font-weight: 600; }
-  .settings-row select { width: auto; }
-
-  .match {
-    display: grid;
-    grid-template-columns: 1fr 86px 20px 86px 1fr;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 10px;
-    border: 1.5px solid var(--border);
-    border-radius: 11px;
-    margin-bottom: 10px;
-    background: var(--card-soft);
-  }
-  .match .table-tag {
-    grid-column: 1 / -1;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .match .name { font-weight: 600; font-size: 0.95rem; }
-  .match .name small { color: var(--muted); font-weight: 500; }
-  .match .name.right { text-align: right; }
-  .match .name.winner { color: var(--win); }
-  .match .name.winner::after { content: " ✓"; }
-  .match .name.right.winner::after { content: ""; }
-  .match .name.right.winner::before { content: "✓ "; }
-  .match .vs { text-align: center; color: var(--muted); font-size: 0.8rem; }
-  .match .badge {
-    grid-column: 1 / -1;
-    font-size: 0.75rem;
-    color: var(--muted);
-    text-align: center;
-  }
-  .match .badge.warn { color: var(--accent); font-weight: 600; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-  th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; }
-  td.team-name, th.team-name { text-align: left; font-weight: 600; }
-  tr.p1 td, tr.p2 td { background: #fdf6e3; }
-  tr.p3 td, tr.p4 td { background: #f3f6fa; }
-  td .pos {
-    display: inline-block;
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: #e8eeea;
-    font-size: 0.78rem;
-    line-height: 22px;
-  }
-  tr.p1 td .pos, tr.p2 td .pos { background: var(--gold); color: #fff; }
-  tr.p3 td .pos, tr.p4 td .pos { background: var(--silver); color: #fff; }
-  .tb-note { font-size: 0.75rem; color: var(--muted); margin-top: 8px; line-height: 1.5; }
-
-  .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  td.pts-col { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
-  td.form-col { white-space: nowrap; }
-  .frm {
-    display: inline-block; width: 18px; height: 18px; line-height: 18px;
-    border-radius: 50%; font-size: 0.68rem; font-weight: 800; margin: 0 1px;
-    background: #eef1ef; color: var(--muted);
-  }
-  .frm.w { background: var(--win); color: #fff; }
-  .frm.l { background: var(--accent); color: #fff; }
-  .xtable { font-size: 0.78rem; }
-  .xtable th, .xtable td { padding: 6px 5px; white-space: nowrap; }
-  .xtable td.team-name { font-size: 0.8rem; }
-  .xtable td.self { color: var(--border); }
-  .xtable td.w { background: #dcefe2; color: var(--win); font-weight: 700; }
-  .xtable td.l { background: #fbe4e8; color: var(--accent); font-weight: 600; }
-
-  .round-title {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 4px;
-  }
-  .round-title h2 { font-size: 1.15rem; }
-  .round-title .status {
-    font-size: 0.75rem; font-weight: 700;
-    padding: 4px 10px; border-radius: 12px;
-    background: #e8eeea; color: var(--muted);
-  }
-  .round-title .status.done { background: #dcefe2; color: var(--win); }
-
-  .empty-note {
-    text-align: center;
-    color: var(--muted);
-    padding: 24px 12px;
-    font-size: 0.92rem;
-  }
-
-  .set-score {
-    text-align: center;
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin: 10px 0 16px;
-  }
-  .podium {
-    text-align: center;
-    padding: 22px;
-    background: linear-gradient(135deg, #fdf2cc, #fbe39a);
-    border-radius: 14px;
-    margin-bottom: 16px;
-  }
-  .podium .trophy { font-size: 2.6rem; }
-  .podium h3 { font-size: 1.4rem; margin-top: 6px; }
-  .podium .row { font-size: 1rem; margin-top: 8px; color: #6b5510; }
-  .podium .share-winners {
-    margin-top: 18px; border: none; background: var(--bg); color: #fff;
-    padding: 12px 24px; border-radius: 24px; font-size: 1rem; font-weight: 700; cursor: pointer;
-  }
-  .podium .share-winners:hover { background: var(--bg-light); }
-
-  .draw-row {
-    display: grid;
-    grid-template-columns: 1fr 24px 1fr;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-  .draw-row .vs { text-align: center; color: var(--muted); font-size: 0.8rem; }
-
-  .scorer-link {
-    display: inline-block; margin: -4px 0 12px; font-size: 0.85rem;
-    color: var(--bg-light); text-decoration: none; font-weight: 600;
-  }
-  .scorer-link:hover { text-decoration: underline; }
-  .share-code { font-size: 1.5rem; font-weight: 800; letter-spacing: 2px; color: var(--bg); }
-  .share-link { word-break: break-all; font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
-
-  @media (max-width: 520px) {
-    .match { grid-template-columns: 1fr 76px 12px 76px 1fr; gap: 5px; }
-    .match .name { font-size: 0.83rem; }
-    input[type="number"] { padding: 10px 2px; font-size: 1.05rem; }
-  }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -355,6 +84,8 @@
 <script src="firebase-config.js"></script>
 <script src="sync.js"></script>
 <script src="view.js"></script>
+<script src="turnir.js"></script>
+<script src="slika.js"></script>
 <script>
 const STORAGE_KEY = 'efd-bela-v1';
 const TEAMS = 10;
@@ -404,10 +135,6 @@ function loadState() {
 let sharing = false;
 let applyingRemote = false;
 
-function genId() {
-  return Math.random().toString(36).slice(2, 8);
-}
-
 function save() {
   // na server piše samo otključani (admin) preglednik; gledatelji samo čitaju
   const writer = sharing && !applyingRemote && state.turnirId && ViewMode.full();
@@ -454,46 +181,16 @@ function baseLink() {
   return location.origin + location.pathname.replace(/[^/]*$/, '') ;
 }
 
-/* ---------- QR kodovi po stolu ---------- */
+/* ---------- poveznice i QR po stolu ---------- */
 function tableUrl(r, i) {
   return baseLink() + 'partija.html?turnir=' + (state.turnirId || TURNIR_ID) +
     '&kolo=' + r + '&stol=' + i;
 }
-function qrSrc(data, size) {
-  return 'https://api.qrserver.com/v1/create-qr-code/?size=' + size + 'x' + size +
-    '&margin=8&data=' + encodeURIComponent(data);
-}
 function printRoundQR(r) {
   const round = state.rounds[r];
   if (!round) return;
-  const cards = round.map((m, i) => {
-    const url = tableUrl(r, i);
-    return '<div class="qrp">' +
-      '<div class="t">Stol ' + (i + 1) + '</div>' +
-      '<div class="n">' + teamName(m.t1) + '<br><span>vs</span><br>' + teamName(m.t2) + '</div>' +
-      '<img src="' + qrSrc(url, 320) + '" alt="QR">' +
-      '<div class="k">' + (r + 1) + '. kolo · skeniraj i upiši partiju</div>' +
-      '</div>';
-  }).join('');
-  const w = window.open('', '_blank');
-  if (!w) { alert('Skočni prozor je blokiran — dopusti ga pa probaj ponovno.'); return; }
-  w.document.write(
-    '<!doctype html><html lang="hr"><head><meta charset="utf-8">' +
-    '<title>QR za stolove · ' + (r + 1) + '. kolo</title><style>' +
-    'body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:14px;color:#1b2a22}' +
-    'h1{font-size:1.1rem;color:#0f4d2e;text-align:center;margin:0 0 12px}' +
-    '.qrp{page-break-inside:avoid;display:inline-block;width:46%;box-sizing:border-box;' +
-    'border:2px solid #0f4d2e;border-radius:14px;margin:1%;padding:16px;text-align:center;vertical-align:top}' +
-    '.qrp .t{font-size:1.7rem;font-weight:800;color:#0f4d2e}' +
-    '.qrp .n{margin:8px 0;font-weight:700;font-size:1.05rem}.qrp .n span{color:#6b7c72;font-weight:500}' +
-    '.qrp img{width:320px;height:320px;max-width:100%}' +
-    '.qrp .k{color:#6b7c72;font-size:.85rem;margin-top:6px}' +
-    '@media print{button{display:none}}' +
-    '</style></head><body>' +
-    '<h1>♠ EFD Bela — QR kodovi stolova (' + (r + 1) + '. kolo)</h1>' +
-    '<div style="text-align:center;margin-bottom:10px"><button onclick="window.print()">🖨️ Ispiši</button></div>' +
-    cards + '</body></html>');
-  w.document.close();
+  Slika.printRoundQR(r, round.map((m, i) =>
+    ({url: tableUrl(r, i), name1: teamName(m.t1), name2: teamName(m.t2)})));
 }
 
 function renderShare() {
@@ -521,121 +218,13 @@ function teamName(i) {
   return state.teams[i] && state.teams[i].trim() ? state.teams[i].trim() : 'Ekipa ' + (i + 1);
 }
 
-function matchDone(m) {
-  // fin === false znači partija je još u tijeku (uživo zbroj) — ne broji se kao gotova
-  return m.s1 !== null && m.s2 !== null && m.s1 !== m.s2 && m.fin !== false;
-}
-
-function roundDone(round) {
-  return round.every(matchDone);
-}
-
-function allMatches() {
-  return state.rounds.flat();
-}
-
-function swissFinished() {
-  return state.rounds.length >= state.numRounds &&
-    state.rounds.slice(0, state.numRounds).every(roundDone);
-}
-
-/* ---------- statistika i poredak ---------- */
-function computeStats() {
-  const stats = {};
-  for (let i = 0; i < TEAMS; i++) {
-    stats[i] = {team: i, played: 0, wins: 0, losses: 0, plus: 0, minus: 0, opponents: [], tiebreak: false};
-  }
-  allMatches().forEach(m => {
-    if (!matchDone(m)) return;
-    stats[m.t1].played++; stats[m.t2].played++;
-    stats[m.t1].plus += m.s1; stats[m.t1].minus += m.s2;
-    stats[m.t2].plus += m.s2; stats[m.t2].minus += m.s1;
-    stats[m.t1].opponents.push(m.t2);
-    stats[m.t2].opponents.push(m.t1);
-    if (m.s1 > m.s2) { stats[m.t1].wins++; stats[m.t2].losses++; }
-    else { stats[m.t2].wins++; stats[m.t1].losses++; }
-  });
-  // Buchholz: zbroj pobjeda svih protivnika
-  for (let i = 0; i < TEAMS; i++) {
-    stats[i].buchholz = stats[i].opponents.reduce((sum, o) => sum + stats[o].wins, 0);
-  }
-  return stats;
-}
-
-/* Poredak:
-   1. broj pobjeda
-   2. međusobni susreti izjednačenih (pobjede u međusobnim)
-   3. Buchholz (zbroj pobjeda protivnika)
-   4. razlika bodova (+/-) = osvojeni − primljeni
-*/
-function standings() {
-  const stats = computeStats();
-  const matches = allMatches().filter(matchDone);
-
-  const byWins = {};
-  Object.values(stats).forEach(s => {
-    (byWins[s.wins] = byWins[s.wins] || []).push(s);
-  });
-
-  const result = [];
-  Object.keys(byWins).map(Number).sort((a, b) => b - a).forEach(w => {
-    const tied = byWins[w];
-    if (tied.length === 1) {
-      result.push(tied[0]);
-      return;
-    }
-    const tiedSet = new Set(tied.map(s => s.team));
-    const h2h = {};
-    tied.forEach(s => h2h[s.team] = 0);
-    matches.forEach(m => {
-      if (!tiedSet.has(m.t1) || !tiedSet.has(m.t2)) return;
-      if (m.s1 > m.s2) h2h[m.t1]++; else h2h[m.t2]++;
-    });
-    tied.forEach(s => s.tiebreak = true);
-    tied.sort((a, b) =>
-      h2h[b.team] - h2h[a.team] ||
-      b.buchholz - a.buchholz ||
-      (b.plus - b.minus) - (a.plus - a.minus) ||
-      teamName(a.team).localeCompare(teamName(b.team))
-    );
-    result.push(...tied);
-  });
-  return result;
-}
-
-/* ---------- švicarsko sparivanje ----------
-   Ekipe poredane po trenutnoj tablici; sparuje od vrha prema dnu,
-   preferira najbližeg po poretku (isti broj bodova), preskače već
-   odigrane parove, s backtrackingom da raspored uvijek uspije. */
-function playedPairs() {
-  const set = new Set();
-  allMatches().forEach(m => {
-    set.add(Math.min(m.t1, m.t2) + '-' + Math.max(m.t1, m.t2));
-  });
-  return set;
-}
-
-function swissPairing() {
-  const order = standings().map(s => s.team);
-  const played = playedPairs();
-
-  function backtrack(remaining) {
-    if (remaining.length === 0) return [];
-    const first = remaining[0];
-    for (let i = 1; i < remaining.length; i++) {
-      const opp = remaining[i];
-      if (played.has(Math.min(first, opp) + '-' + Math.max(first, opp))) continue;
-      const rest = remaining.filter((_, idx) => idx !== 0 && idx !== i);
-      const sub = backtrack(rest);
-      if (sub !== null) return [[first, opp], ...sub];
-    }
-    return null;
-  }
-
-  const pairs = backtrack(order);
-  if (!pairs) return null;
-  return pairs.map(p => ({t1: p[0], t2: p[1], s1: null, s2: null}));
-}
+/* ---------- logika turnira (turnir.js) — tanki omoti nad stanjem ---------- */
+function matchDone(m) { return Turnir.matchDone(m); }
+function roundDone(round) { return Turnir.roundDone(round); }
+function allMatches() { return Turnir.allMatches(state.rounds); }
+function swissFinished() { return Turnir.swissFinished(state.rounds, state.numRounds); }
+function standings() { return Turnir.standings(state.rounds, TEAMS, teamName); }
+function swissPairing() { return Turnir.swissPairing(state.rounds, TEAMS, teamName); }
 
 /* ---------- navigacija ---------- */
 function switchTab(tab) {
@@ -858,16 +447,7 @@ function matchEl(match, tableNo, statsBefore, target, onChange) {
 }
 
 /* bodovi (pobjede) svake ekipe PRIJE zadanog kola — za prikaz uz ime */
-function winsBeforeRound(roundIdx) {
-  const wins = Array(TEAMS).fill(0);
-  for (let r = 0; r < roundIdx; r++) {
-    state.rounds[r].forEach(m => {
-      if (!matchDone(m)) return;
-      wins[m.s1 > m.s2 ? m.t1 : m.t2]++;
-    });
-  }
-  return wins;
-}
+function winsBeforeRound(roundIdx) { return Turnir.winsBeforeRound(state.rounds, roundIdx, TEAMS); }
 
 /* ---------- kola ---------- */
 function setRoundStatus(r) {
@@ -1015,33 +595,15 @@ function renderRounds() {
 }
 
 /* ---------- tablica ---------- */
-/* forma ekipe po kolima: 'w' | 'l' | null (nije igrano/završeno) */
-function teamForm(team) {
-  return state.rounds.map(round => {
-    const m = round.find(x => (x.t1 === team || x.t2 === team) && matchDone(x));
-    if (!m) return null;
-    return ((m.t1 === team) ? m.s1 > m.s2 : m.s2 > m.s1) ? 'w' : 'l';
-  });
-}
-
 function formHtml(team) {
-  return teamForm(team).map(f =>
+  return Turnir.teamForm(state.rounds, team).map(f =>
     f === 'w' ? '<span class="frm w">✓</span>' :
     f === 'l' ? '<span class="frm l">✗</span>' :
                 '<span class="frm">·</span>'
   ).join('');
 }
 
-/* međusobni rezultati: mapa "a-b" -> [bodovi a, bodovi b] */
-function h2hMap() {
-  const map = {};
-  allMatches().forEach(m => {
-    if (!matchDone(m)) return;
-    map[m.t1 + '-' + m.t2] = [m.s1, m.s2];
-    map[m.t2 + '-' + m.t1] = [m.s2, m.s1];
-  });
-  return map;
-}
+function h2hMap() { return Turnir.h2hMap(state.rounds); }
 
 function renderStandings() {
   const wrap = document.getElementById('standingsContent');
@@ -1142,91 +704,10 @@ function computeQualifiers() {
   return {f1: st[0].team, f2: st[1].team, t3a: st[2].team, t3b: st[3].team};
 }
 
-/* ---------- slika pobjednika (za dijeljenje) ---------- */
-function fitFont(ctx, text, maxWidth, startSize, weight, family) {
-  let size = startSize;
-  do {
-    ctx.font = weight + ' ' + size + 'px ' + family;
-    if (ctx.measureText(text).width <= maxWidth) break;
-    size -= 2;
-  } while (size > 18);
-  return size;
-}
-
-function drawPodiumCanvas(champ, second, third) {
-  const W = 1080, H = 1080, FAM = '-apple-system, "Segoe UI", Roboto, sans-serif';
-  const c = document.createElement('canvas');
-  c.width = W; c.height = H;
-  const ctx = c.getContext('2d');
-
-  const g = ctx.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, '#0f4d2e'); g.addColorStop(1, '#166038');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.globalAlpha = 0.07; ctx.fillStyle = '#fff';
-  ctx.font = '520px ' + FAM; ctx.fillText('♠', W / 2, H / 2 + 30);
-  ctx.globalAlpha = 1;
-
-  ctx.fillStyle = '#cfe5d8'; ctx.font = '700 40px ' + FAM;
-  ctx.fillText('🃏  E F D   B E L A  🃏', W / 2, 95);
-  ctx.fillStyle = '#fff'; ctx.font = '800 70px ' + FAM;
-  ctx.fillText('Pobjednici turnira', W / 2, 175);
-
-  ctx.font = '160px ' + FAM; ctx.fillText('🏆', W / 2, 350);
-
-  ctx.fillStyle = '#ffd54a'; ctx.font = '700 34px ' + FAM;
-  ctx.fillText('1. MJESTO', W / 2, 470);
-  let s = fitFont(ctx, champ, W - 140, 78, '800', FAM);
-  ctx.fillStyle = '#fff'; ctx.font = '800 ' + s + 'px ' + FAM;
-  ctx.fillText(champ, W / 2, 540);
-
-  ctx.fillStyle = '#cfd6dd'; ctx.font = '700 30px ' + FAM;
-  ctx.fillText('🥈  2. MJESTO', W / 2, 690);
-  s = fitFont(ctx, second, W - 200, 54, '700', FAM);
-  ctx.fillStyle = '#fff'; ctx.font = '700 ' + s + 'px ' + FAM;
-  ctx.fillText(second, W / 2, 745);
-
-  if (third) {
-    ctx.fillStyle = '#e3b07a'; ctx.font = '700 30px ' + FAM;
-    ctx.fillText('🥉  3. MJESTO', W / 2, 855);
-    s = fitFont(ctx, third, W - 200, 54, '700', FAM);
-    ctx.fillStyle = '#fff'; ctx.font = '700 ' + s + 'px ' + FAM;
-    ctx.fillText(third, W / 2, 910);
-  }
-
-  ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.font = '400 28px ' + FAM;
-  ctx.fillText(new Date().toLocaleDateString('hr-HR'), W / 2, H - 48);
-
-  return c;
-}
-
-function shareWinners(champ, second, third) {
-  const canvas = drawPodiumCanvas(champ, second, third);
-  canvas.toBlob(blob => {
-    if (!blob) return;
-    const file = new File([blob], 'efd-bela-pobjednici.png', { type: 'image/png' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file], title: 'EFD Bela', text: '🏆 Pobjednici turnira!' }).catch(() => {});
-    } else {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'efd-bela-pobjednici.png';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-  }, 'image/png');
-}
+function shareWinners(champ, second, third) { Slika.shareWinners(champ, second, third); }
 
 
-function seriesWins(sets) {
-  let w1 = 0, w2 = 0;
-  sets.forEach(s => {
-    if (s.s1 === null || s.s2 === null || s.s1 === s.s2) return;
-    if (s.s1 > s.s2) w1++; else w2++;
-  });
-  return [w1, w2];
-}
+function seriesWins(sets) { return Turnir.seriesWins(sets); }
 
 /* serija na dvije dobivene do 1001.
    onScore se zove nakon upisa rezultata; osvježava izvedeni prikaz u mjestu
