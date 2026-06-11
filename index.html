@@ -725,7 +725,7 @@ function teamSelect(value, onChange, placeholder) {
   return sel;
 }
 
-/* svi mečevi ekipe kroz kola: {r, table, opp, my, their, done, live} */
+/* svi mečevi ekipe (kola + završnica): {label, opp, my, their, done, live} */
 function teamMatches(team) {
   const list = [];
   state.rounds.forEach((round, r) => {
@@ -734,7 +734,7 @@ function teamMatches(team) {
       if (m.s1 === null || m.s2 === null) return; // nije ni počelo
       const mine = m.t1 === team;
       list.push({
-        r, table: i + 1,
+        label: (r + 1) + '. kolo · Stol ' + (i + 1),
         opp: mine ? m.t2 : m.t1,
         my: mine ? m.s1 : m.s2,
         their: mine ? m.s2 : m.s1,
@@ -743,6 +743,27 @@ function teamMatches(team) {
       });
     });
   });
+  // završnica: svaka partija serije kao zaseban meč
+  const f = state.finals;
+  if (f) {
+    const addSeries = (label, tA, tB, sets) => {
+      if (team !== tA && team !== tB) return;
+      (sets || []).forEach((s, i) => {
+        if (s.s1 == null || s.s2 == null) return;
+        const mine = team === tA;
+        const done = s.s1 !== s.s2;
+        list.push({
+          label: label + ' · ' + (i + 1) + '. partija',
+          opp: mine ? tB : tA,
+          my: mine ? s.s1 : s.s2,
+          their: mine ? s.s2 : s.s1,
+          done, live: !done
+        });
+      });
+    };
+    addSeries('🏆 Finale', f.f1, f.f2, f.finalSets);
+    addSeries('🥉 Za 3. mjesto', f.t3a, f.t3b, f.thirdSets);
+  }
   return list;
 }
 
@@ -750,7 +771,7 @@ function renderTeamMatches(wrap, st) {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h2>Mečevi ekipe</h2>' +
-    '<p class="hint">Odaberi ekipu i vidi sve njene mečeve — zeleno = pobjeda, crveno = poraz.</p>';
+    '<p class="hint">Odaberi ekipu i vidi sve njene mečeve (kola i završnica) — zeleno = pobjeda, crveno = poraz. Brojke u sažetku obuhvaćaju kola.</p>';
   card.appendChild(teamSelect(statTeam, v => { statTeam = v; renderStats(); }));
 
   if (statTeam !== null) {
@@ -786,7 +807,7 @@ function renderTeamMatches(wrap, st) {
       div.className = 'smatch' + (g.done ? (g.my > g.their ? ' w' : ' l') : '');
       div.innerHTML =
         '<div><div class="opp">vs ' + teamName(g.opp) + '</div>' +
-        '<div class="meta">' + (g.r + 1) + '. kolo · Stol ' + g.table +
+        '<div class="meta">' + g.label +
         (g.live ? ' · ⏳ u tijeku' : '') + '</div></div>' +
         '<div class="sc">' + g.my + ' : ' + g.their + '</div>';
       card.appendChild(div);
