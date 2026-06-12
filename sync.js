@@ -55,5 +55,16 @@ window.BelaSync = (function () {
     return db.ref('turniri/' + id).update(upd).then(() => true);
   }
 
-  return { configured, init, watch, get, push, setMatch };
+  // Upis jedne partije završnice (series: 'finalSets' | 'thirdSets').
+  function setFinal(id, series, i, s1, s2, fin) {
+    if (!init()) return Promise.resolve(false);
+    const upd = {};
+    upd['finals/' + series + '/' + i + '/s1'] = s1;
+    upd['finals/' + series + '/' + i + '/s2'] = s2;
+    upd['finals/' + series + '/' + i + '/fin'] = !!fin;
+    upd['updatedAt'] = Date.now();
+    return db.ref('turniri/' + id).update(upd).then(() => true);
+  }
+
+  return { configured, init, watch, get, push, setMatch, setFinal };
 })();

@@ -132,6 +132,7 @@ function loadState() {
       // ranije spremljena prazna imena popuni zadanim ekipama
       s.teams = s.teams.map((n, i) => (n && n.trim()) ? n : DEFAULT_TEAMS[i]);
       s.rounds = normRounds(s.rounds);
+      s.finals = normFinals(s.finals);
       return s;
     }
   } catch (e) {}
@@ -157,6 +158,16 @@ function normRounds(rounds) {
     Object.assign({}, m, {s1: m.s1 ?? null, s2: m.s2 ?? null})));
 }
 
+/* isto za završnicu: prazne serije i prazni rezultati vrate se u očekivani oblik */
+function normFinals(f) {
+  if (!f) return f;
+  const fix = sets => (sets || []).map(s =>
+    s ? Object.assign({}, s, {s1: s.s1 ?? null, s2: s.s2 ?? null}) : {s1: null, s2: null});
+  f.finalSets = fix(f.finalSets);
+  f.thirdSets = fix(f.thirdSets);
+  return f;
+}
+
 function watchRemote() {
   if (!state.turnirId) return;
   BelaSync.watch(state.turnirId, remote => {
@@ -167,6 +178,7 @@ function watchRemote() {
     const id = state.turnirId;
     state = Object.assign(defaultState(), remote);
     state.rounds = normRounds(state.rounds);
+    state.finals = normFinals(state.finals);
     state.teams = state.teams.map((n, i) => (n && n.trim()) ? n : DEFAULT_TEAMS[i]);
     state.turnirId = id;
     state.shared = true;
@@ -727,7 +739,7 @@ function teamMatches(team) {
       (sets || []).forEach((s, i) => {
         if (s.s1 == null || s.s2 == null) return;
         const mine = team === tA;
-        const done = s.s1 !== s.s2;
+        const done = s.s1 !== s.s2 && s.fin !== false;
         list.push({
           label: label + ' · ' + (i + 1) + '. partija',
           opp: mine ? tB : tA,
@@ -826,7 +838,7 @@ function renderH2H(wrap, st) {
         if (!((tA === h2hA && tB === h2hB) || (tA === h2hB && tB === h2hA))) return;
         (sets || []).forEach((s, i) => {
           if (s.s1 == null || s.s2 == null) return;
-          const aFirst = tA === h2hA, done = s.s1 !== s.s2;
+          const aFirst = tA === h2hA, done = s.s1 !== s.s2 && s.fin !== false;
           games.push({label: label + ' · ' + (i + 1) + '. partija',
             sA: aFirst ? s.s1 : s.s2, sB: aFirst ? s.s2 : s.s1, done, live: !done});
         });
@@ -912,7 +924,7 @@ function seriesWins(sets) { return Turnir.seriesWins(sets); }
 /* serija na dvije dobivene do 1001.
    onScore se zove nakon upisa rezultata; osvježava izvedeni prikaz u mjestu
    (rezultat serije, postolje, gumb za dodavanje) bez rušenja polja za unos. */
-function seriesCard(title, hint, tA, tB, sets, onScore) {
+function seriesCard(title, hint, tA, tB, sets, onScore, key) {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = '<h2>' + title + '</h2><p class="hint">' + hint + '</p>';
@@ -924,8 +936,22 @@ function seriesCard(title, hint, tA, tB, sets, onScore) {
   sets.forEach((s, idx) => {
     const m = {t1: tA, t2: tB,
       get s1() { return s.s1; }, set s1(v) { s.s1 = v; },
-      get s2() { return s.s2; }, set s2(v) { s.s2 = v; }};
+      get s2() { return s.s2; }, set s2(v) { s.s2 = v; },
+      get fin() { return s.fin; }, set fin(v) { s.fin = v; }};
     card.appendChild(matchEl(m, (idx + 1) + '. partija', null, FINAL_TARGET, onScore));
+
+    // link na brojač dok partija nije gotova
+    const setDone = s.s1 !== null && s.s2 !== null && s.s1 !== s.s2 && s.fin !== false;
+    if (state.turnirId && !setDone) {
+      const a = document.createElement('a');
+      a.className = 'scorer-link';
+      a.href = baseLink() + 'partija.html?turnir=' + (state.turnirId || TURNIR_ID) +
+        '&fin=' + key + '&p=' + idx;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = '🃏 ' + (idx + 1) + '. partija — upiši (' + teamName(tA) + ' / ' + teamName(tB) + ')';
+      card.appendChild(a);
+    }
   });
 
   const addBtn = document.createElement('button');
@@ -996,7 +1022,8 @@ function renderFinals() {
   }
 
   if (!state.finals) {
-    state.finals = {...q, finalSets: [], thirdSets: []};
+    // prva partija obje serije odmah postoji da stolovi imaju gdje upisivati
+    state.finals = {...q, finalSets: [{s1: null, s2: null}], thirdSets: [{s1: null, s2: null}]};
     save();
   }
   const f = state.finals;
@@ -1043,12 +1070,12 @@ function renderFinals() {
   finalSeries = seriesCard(
     '🏆 Finale',
     '1. protiv 2. s tablice · do ' + FINAL_TARGET + ' · na dvije dobivene partije',
-    f.f1, f.f2, f.finalSets, updateFinalsDerived
+    f.f1, f.f2, f.finalSets, updateFinalsDerived, 'f'
   );
   thirdSeries = seriesCard(
     '🥉 Za 3. mjesto',
     '3. protiv 4. s tablice · do ' + FINAL_TARGET + ' · na dvije dobivene partije',
-    f.t3a, f.t3b, f.thirdSets, updateFinalsDerived
+    f.t3a, f.t3b, f.thirdSets, updateFinalsDerived, 't'
   );
   wrap.appendChild(finalSeries.card);
   wrap.appendChild(thirdSeries.card);

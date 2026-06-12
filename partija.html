@@ -65,9 +65,14 @@ const params = new URLSearchParams(location.search);
 const TURNIR = params.get('turnir');
 const KOLO   = params.get('kolo');   // index kola (0-based)
 const STOL   = params.get('stol');   // index utakmice u kolu (0-based)
-const linked = TURNIR !== null && KOLO !== null && STOL !== null && BelaSync.configured();
+const FIN    = params.get('fin');    // 'f' = finale, 't' = za 3. mjesto
+const PART   = params.get('p');      // index partije u seriji (0-based)
+const finMode = FIN !== null && PART !== null;
+const linked = TURNIR !== null && BelaSync.configured() &&
+  (finMode || (KOLO !== null && STOL !== null));
 
-const KEY = 'efd-bela-partija-' + (TURNIR || 'local') + '-' + (KOLO ?? 'x') + '-' + (STOL ?? 'x');
+const KEY = 'efd-bela-partija-' + (TURNIR || 'local') + '-' +
+  (finMode ? 'fin-' + FIN + '-' + PART : (KOLO ?? 'x') + '-' + (STOL ?? 'x'));
 
 function emptyDeal() {
   return { caller: null, trick0: '', trick1: '', zvanja0: 0, zvanja1: 0, zv0: [], zv1: [],
@@ -95,17 +100,38 @@ function isRoundDone(round) {
   return Array.isArray(round) && round.length > 0 && round.every(matchFinished);
 }
 
+function seriesDecided(sets) {
+  let w1 = 0, w2 = 0;
+  (sets || []).forEach(s => {
+    if (!s || s.s1 == null || s.s2 == null || s.s1 === s.s2 || s.fin === false) return;
+    if (s.s1 > s.s2) w1++; else w2++;
+  });
+  return w1 >= 2 || w2 >= 2;
+}
+
 function applyTournament(t) {
   const status = document.getElementById('syncStatus');
   if (!t) { status.textContent = 'Turnir nije pronađen — provjeri vezu.'; return; }
-  const r = Number(KOLO), m = Number(STOL);
-  const match = t.rounds && t.rounds[r] && t.rounds[r][m];
-  if (!match) { status.textContent = 'Utakmica nije pronađena.'; return; }
   const name = i => (t.teams && t.teams[i] && t.teams[i].trim()) ? t.teams[i].trim() : ('Ekipa ' + (i + 1));
-  const a = name(match.t1), b = name(match.t2), tgt = t.target || 1501;
-  // zaključaj kad je kolo gotovo (svi stolovi završili) ili je krenulo kasnije kolo
-  const laterRound = Array.isArray(t.rounds) && r < t.rounds.length - 1;
-  const locked = laterRound || isRoundDone(t.rounds && t.rounds[r]);
+
+  let a, b, tgt, locked;
+  if (finMode) {
+    const f = t.finals;
+    if (!f) { status.textContent = 'Završnica još nije počela.'; return; }
+    a = name(FIN === 'f' ? f.f1 : f.t3a);
+    b = name(FIN === 'f' ? f.f2 : f.t3b);
+    tgt = 1001;
+    // zaključaj kad je serija odlučena (dvije dobivene)
+    locked = seriesDecided(FIN === 'f' ? f.finalSets : f.thirdSets);
+  } else {
+    const r = Number(KOLO), m = Number(STOL);
+    const match = t.rounds && t.rounds[r] && t.rounds[r][m];
+    if (!match) { status.textContent = 'Utakmica nije pronađena.'; return; }
+    a = name(match.t1); b = name(match.t2); tgt = t.target || 1501;
+    // zaključaj kad je kolo gotovo (svi stolovi završili) ili je krenulo kasnije kolo
+    const laterRound = Array.isArray(t.rounds) && r < t.rounds.length - 1;
+    locked = laterRound || isRoundDone(t.rounds && t.rounds[r]);
+  }
   if (a === st.teamA && b === st.teamB && tgt === st.target && locked === roundLocked) return;
   st.teamA = a; st.teamB = b; st.target = tgt; roundLocked = locked;
   save();
@@ -369,7 +395,9 @@ function applyAccess() {
     addBtn.style.display = 'none';
     unlockBtn.style.display = 'none';
     status.className = 'sync-status';
-    status.textContent = '🔒 Ovo kolo je zaključano. Za ispravak se javi organizatoru.';
+    status.textContent = finMode
+      ? '🔒 Serija je odlučena i zaključana. Za ispravak se javi organizatoru.'
+      : '🔒 Ovo kolo je zaključano. Za ispravak se javi organizatoru.';
     return;
   }
   if (linked && !canWrite()) {  // treba kod za upis
@@ -406,7 +434,10 @@ function maybeWrite(g) {
     ? '✓ Upisano u turnir (' + g.total0 + ':' + g.total1 + ')'
     : '⏳ Uživo u turniru: ' + g.total0 + ' : ' + g.total1;
   if (sig === lastWritten) { status.className = 'sync-status ok'; status.textContent = okText; return; }
-  BelaSync.setMatch(TURNIR, Number(KOLO), Number(STOL), g.total0, g.total1, g.finished).then(ok => {
+  const write = finMode
+    ? BelaSync.setFinal(TURNIR, FIN === 'f' ? 'finalSets' : 'thirdSets', Number(PART), g.total0, g.total1, g.finished)
+    : BelaSync.setMatch(TURNIR, Number(KOLO), Number(STOL), g.total0, g.total1, g.finished);
+  write.then(ok => {
     if (ok) { lastWritten = sig; status.className = 'sync-status ok'; status.textContent = okText; }
     else { status.textContent = 'Upis nije uspio — provjeri vezu.'; }
   });

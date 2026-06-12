@@ -153,11 +153,12 @@
     return map;
   }
 
-  /* serija na dvije dobivene: broj dobivenih partija svake strane */
+  /* serija na dvije dobivene: broj dobivenih partija svake strane
+     (fin === false znači partija je još u tijeku — ne broji se) */
   function seriesWins(sets) {
     let w1 = 0, w2 = 0;
     sets.forEach(s => {
-      if (s.s1 === null || s.s2 === null || s.s1 === s.s2) return;
+      if (s.s1 === null || s.s2 === null || s.s1 === s.s2 || s.fin === false) return;
       if (s.s1 > s.s2) w1++; else w2++;
     });
     return [w1, w2];
