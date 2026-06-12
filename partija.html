@@ -160,9 +160,10 @@ document.getElementById('targetInput')?.addEventListener('change', e => { st.tar
 
 document.getElementById('addDealBtn').addEventListener('click', () => {
   st.deals.push(emptyDeal());
+  dealOpen = {};
   save();
   render();
-  window.scrollTo(0, document.body.scrollHeight);
+  window.scrollTo(0, 0);
 });
 
 document.getElementById('unlockBtn').addEventListener('click', async () => {
@@ -175,26 +176,41 @@ function canWrite() {
   return WriteMode.on() || (window.ViewMode && ViewMode.full());
 }
 
+// otvoreno/zatvoreno po dijeljenju (samo ručni klik; default računa render)
+let dealOpen = {};
+
 function dealCard(d, idx) {
   const card = document.createElement('div');
   card.className = 'card';
 
+  const valid = validDeal(d);
+  const [s0, s1] = Bela.scoreDeal(normDeal(d));
+
   const head = document.createElement('div');
   head.className = 'deal-head';
-  head.innerHTML = '<h3>' + (idx + 1) + '. dijeljenje</h3>';
+  const title = document.createElement('div');
+  title.className = 'deal-title';
+  title.innerHTML = '<span class="caret">▾</span><h3>' + (idx + 1) + '. dijeljenje</h3>' +
+    '<span class="deal-sum">' + (valid ? (s0 + ' : ' + s1) : '—') + '</span>';
+  head.appendChild(title);
   const del = document.createElement('button');
   del.className = 'del'; del.textContent = '✕';
   del.title = 'Obriši dijeljenje';
   del.addEventListener('click', () => {
     if (st.deals.length === 1) { st.deals[0] = emptyDeal(); }
     else st.deals.splice(idx, 1);
+    dealOpen = {};
     save(); render();
   });
   head.appendChild(del);
   card.appendChild(head);
 
+  const body = document.createElement('div');
+  body.className = 'deal-body';
+  card.appendChild(body);
+
   // zvao adut
-  card.appendChild(pillField('Zvao aduta', ['caller'], [
+  body.appendChild(pillField('Zvao aduta', ['caller'], [
     { lbl: st.teamA, val: 0 }, { lbl: st.teamB, val: 1 }
   ], d.caller, v => { d.caller = (d.caller === v ? null : v); save(); render(); }));
 
@@ -208,7 +224,7 @@ function dealCard(d, idx) {
   const sep = document.createElement('div'); sep.className = 'sep'; sep.textContent = ':';
   two.append(a, sep, b);
   stih.appendChild(two);
-  card.appendChild(stih);
+  body.appendChild(stih);
 
   // zvanja — tipke (može više, vezana zvanja se zbrajaju)
   if (!Array.isArray(d.zv0)) d.zv0 = d.zvanja0 ? [Number(d.zvanja0)] : [];
@@ -220,7 +236,7 @@ function dealCard(d, idx) {
   zgrid.appendChild(zvanjaTeam(st.teamA, d.zv0, () => { d.zvanja0 = sum(d.zv0); save(); render(); }));
   zgrid.appendChild(zvanjaTeam(st.teamB, d.zv1, () => { d.zvanja1 = sum(d.zv1); save(); render(); }));
   zv.appendChild(zgrid);
-  card.appendChild(zv);
+  body.appendChild(zv);
 
   // bela
   const belaField = document.createElement('div');
@@ -230,24 +246,38 @@ function dealCard(d, idx) {
   bp.appendChild(togglePill(st.teamA, d.bela0, on => { d.bela0 = on; save(); render(); }));
   bp.appendChild(togglePill(st.teamB, d.bela1, on => { d.bela1 = on; save(); render(); }));
   belaField.appendChild(bp);
-  card.appendChild(belaField);
+  body.appendChild(belaField);
 
   // kapot
-  card.appendChild(pillField('Kapot (sve štihove)', ['kapot'], [
+  body.appendChild(pillField('Kapot (sve štihove)', ['kapot'], [
     { lbl: '—', val: null }, { lbl: st.teamA, val: 0 }, { lbl: st.teamB, val: 1 }
   ], d.kapot, v => { d.kapot = v; if (v !== null) { d.trick0 = ''; d.trick1 = ''; } save(); render(); }));
 
   // rezultat dijeljenja
   const res = document.createElement('div');
-  const [s0, s1] = Bela.scoreDeal(normDeal(d));
-  if (validDeal(d)) {
+  if (valid) {
     res.className = 'deal-result';
     res.textContent = st.teamA + ' ' + s0 + ' : ' + s1 + ' ' + st.teamB;
   } else {
     res.className = 'deal-result warn';
     res.textContent = 'Označi tko je zvao i upiši bodove (zbroj štihova 162).';
   }
-  card.appendChild(res);
+  body.appendChild(res);
+
+  // collapse/expand: aktivno (najnovije) ili nedovršeno je otvoreno; gotovo se sklopi
+  function applyOpen(open) {
+    body.style.display = open ? '' : 'none';
+    card.classList.toggle('collapsed', !open);
+    title.querySelector('.caret').textContent = open ? '▾' : '▸';
+  }
+  title.addEventListener('click', () => {
+    const open = body.style.display === 'none';
+    dealOpen[idx] = open;
+    applyOpen(open);
+  });
+  const def = (idx === st.deals.length - 1) || !valid;
+  applyOpen(dealOpen[idx] !== undefined ? dealOpen[idx] : def);
+
   return card;
 }
 
@@ -366,10 +396,10 @@ function render() {
     banner.style.display = 'none';
   }
 
-  // dijeljenja
+  // dijeljenja — aktivno (najnovije) na vrhu, starija silaze prema dnu
   const wrap = document.getElementById('deals');
   wrap.innerHTML = '';
-  st.deals.forEach((d, i) => wrap.appendChild(dealCard(d, i)));
+  for (let i = st.deals.length - 1; i >= 0; i--) wrap.appendChild(dealCard(st.deals[i], i));
 
   // auto-upis u turnir kad je partija gotova
   maybeWrite(g);

@@ -39,8 +39,15 @@
   .deal-head {
     display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
   }
-  .deal-head h3 { font-family: var(--serif); font-size: 1.05rem; }
-  .deal-head .del { background: none; border: none; color: var(--accent); font-size: 1.1rem; cursor: pointer; }
+  .card.collapsed .deal-head { margin-bottom: 0; }
+  .deal-title { display: flex; align-items: center; gap: 8px; flex: 1; cursor: pointer; user-select: none; }
+  .deal-title h3 { font-family: var(--serif); font-size: 1.05rem; }
+  .deal-title .caret { color: var(--gold); font-size: 0.9rem; width: 14px; }
+  .deal-title .deal-sum {
+    font-family: var(--serif); font-weight: 800; color: var(--win);
+    margin-left: auto; font-size: 1.05rem;
+  }
+  .deal-head .del { background: none; border: none; color: var(--accent); font-size: 1.1rem; cursor: pointer; padding-left: 10px; }
   .field { margin-bottom: 12px; }
   .field > label { display: block; font-size: 0.74rem; font-weight: 700; color: var(--muted);
     text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
