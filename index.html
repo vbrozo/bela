@@ -656,7 +656,7 @@ function renderStandings() {
   wrap.innerHTML = '';
 
   if (state.rounds.length === 0) {
-    wrap.innerHTML = '<div class="card"><div class="empty-note">Tablica se popunjava kad krenu rezultati 1. kola.</div></div>';
+    wrap.innerHTML = '<div class="card"><div class="empty-note">⏳ Turnir još nije krenuo.<br>Tablica se popunjava kad počnu rezultati 1. kola.</div></div>';
     return;
   }
 
@@ -1088,6 +1088,7 @@ function renderFinals() {
 /* ---------- način prikaza ---------- */
 function applyMode() {
   const wide = ViewMode.full();
+  const started = state.rounds.length > 0;
   const main = document.querySelector('main');
   main.querySelectorAll('input').forEach(i => { i.readOnly = !wide; });
   // selecti u statistici su filtri za gledanje — uvijek aktivni
@@ -1099,10 +1100,17 @@ function applyMode() {
   // kartica "Ekipe" je samo za organizatora
   const teamsBtn = document.querySelector('nav button[data-tab="teams"]');
   teamsBtn.style.display = wide ? '' : 'none';
+
+  // gledateljima "Kola" nije vidljivo dok turnir ne krene
+  const roundsBtn = document.querySelector('nav button[data-tab="rounds"]');
+  roundsBtn.style.display = (wide || started) ? '' : 'none';
+
   if (!wide) {
     const draw = document.getElementById('drawCard');
     if (draw) draw.style.display = 'none';
-    if (teamsBtn.classList.contains('active')) switchTab('standings');
+    const onHidden = (teamsBtn.classList.contains('active')) ||
+                     (!started && document.querySelector('nav button[data-tab="rounds"]').classList.contains('active'));
+    if (onHidden) switchTab('standings');
   }
 }
 
