@@ -808,30 +808,56 @@ function renderH2H(wrap, st) {
   card.appendChild(row);
 
   if (h2hA !== null && h2hB !== null && h2hA !== h2hB) {
-    // međusobni meč
-    let mutual = null, mutualR = 0, mutualT = 0, live = false;
+    // svi međusobni mečevi (kola + završnica), iz perspektive ekipe A
+    const games = [];
     state.rounds.forEach((round, r) => {
       round.forEach((m, i) => {
         const pair = (m.t1 === h2hA && m.t2 === h2hB) || (m.t1 === h2hB && m.t2 === h2hA);
         if (!pair || m.s1 === null || m.s2 === null) return;
-        mutual = m; mutualR = r; mutualT = i + 1; live = m.fin === false;
+        const aFirst = m.t1 === h2hA;
+        games.push({label: (r + 1) + '. kolo · Stol ' + (i + 1),
+          sA: aFirst ? m.s1 : m.s2, sB: aFirst ? m.s2 : m.s1,
+          done: matchDone(m), live: m.fin === false});
       });
     });
-
-    const score = document.createElement('div');
-    score.className = 'h2h-score';
-    if (mutual) {
-      const sA = mutual.t1 === h2hA ? mutual.s1 : mutual.s2;
-      const sB = mutual.t1 === h2hA ? mutual.s2 : mutual.s1;
-      score.innerHTML = sA + ' : ' + sB +
-        '<div class="meta">' + (mutualR + 1) + '. kolo · Stol ' + mutualT +
-        (live ? ' · ⏳ u tijeku'
-              : ' · pobjednik: ' + teamName(sA > sB ? h2hA : h2hB) +
-                ' (+' + Math.abs(sA - sB) + ')') + '</div>';
-    } else {
-      score.innerHTML = '— : —<div class="meta">još nisu igrale međusobno</div>';
+    const f = state.finals;
+    if (f) {
+      const addSeries = (label, tA, tB, sets) => {
+        if (!((tA === h2hA && tB === h2hB) || (tA === h2hB && tB === h2hA))) return;
+        (sets || []).forEach((s, i) => {
+          if (s.s1 == null || s.s2 == null) return;
+          const aFirst = tA === h2hA, done = s.s1 !== s.s2;
+          games.push({label: label + ' · ' + (i + 1) + '. partija',
+            sA: aFirst ? s.s1 : s.s2, sB: aFirst ? s.s2 : s.s1, done, live: !done});
+        });
+      };
+      addSeries('🏆 Finale', f.f1, f.f2, f.finalSets);
+      addSeries('🥉 Za 3. mjesto', f.t3a, f.t3b, f.thirdSets);
     }
-    card.appendChild(score);
+
+    if (!games.length) {
+      const none = document.createElement('div');
+      none.className = 'h2h-score';
+      none.innerHTML = '— : —<div class="meta">još nisu igrale međusobno</div>';
+      card.appendChild(none);
+    } else {
+      const done = games.filter(g => g.done);
+      const aw = done.filter(g => g.sA > g.sB).length;
+      const tally = document.createElement('div');
+      tally.className = 'h2h-score';
+      tally.innerHTML = aw + ' : ' + (done.length - aw) +
+        '<div class="meta">dobiveni međusobni mečevi · ' + games.length + ' odigrano</div>';
+      card.appendChild(tally);
+
+      games.forEach(g => {
+        const div = document.createElement('div');
+        div.className = 'smatch' + (g.done ? (g.sA > g.sB ? ' w' : ' l') : '');
+        div.innerHTML =
+          '<div class="meta">' + g.label + (g.live ? ' · ⏳ u tijeku' : '') + '</div>' +
+          '<div class="sc">' + g.sA + ' : ' + g.sB + '</div>';
+        card.appendChild(div);
+      });
+    }
 
     // usporedna statistika
     const posOf = t => st.findIndex(s => s.team === t);
