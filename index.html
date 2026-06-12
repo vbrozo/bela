@@ -45,7 +45,7 @@
           <option value="4">4</option>
         </select>
       </div>
-      <p class="hint" style="margin-top:10px;">Nakon kola slijedi završnica: finale 1. – 2. i borba za 3. mjesto 3. – 4. s tablice, oboje do 1001 na dvije dobivene.</p>
+      <p class="hint" style="margin-top:10px;">Nakon kola slijedi završnica: finale 1. – 2. i borba za 3. mjesto 3. – 4. s tablice, oboje jedna partija do 1501.</p>
       <button class="btn" id="saveTeamsBtn">Spremi i kreni</button>
       <button class="btn danger" id="resetBtn">Resetiraj turnir</button>
     </div>
@@ -98,7 +98,7 @@
 <script>
 const STORAGE_KEY = 'efd-bela-v1';
 const TEAMS = 10;
-const FINAL_TARGET = 1001;
+const FINAL_TARGET = 1501;
 const TURNIR_ID = 'efd-bela-2026';
 
 const DEFAULT_TEAMS = [
@@ -924,7 +924,7 @@ function shareWinners(champ, second, third) { Slika.shareWinners(champ, second, 
 
 function seriesWins(sets) { return Turnir.seriesWins(sets); }
 
-/* serija na dvije dobivene do 1001.
+/* jedna partija do 1501 (prva strana koja dobije partiju).
    onScore se zove nakon upisa rezultata; osvježava izvedeni prikaz u mjestu
    (rezultat serije, postolje, gumb za dodavanje) bez rušenja polja za unos. */
 function seriesCard(title, hint, tA, tB, sets, onScore, key) {
@@ -984,7 +984,7 @@ function seriesCard(title, hint, tA, tB, sets, onScore, key) {
   function refresh() {
     const [w1, w2] = seriesWins(sets);
     score.textContent = teamName(tA) + ' ' + w1 + ' : ' + w2 + ' ' + teamName(tB);
-    addBtn.style.display = (w1 < 2 && w2 < 2 && sets.length < 3) ? '' : 'none';
+    addBtn.style.display = 'none';  // jedna partija — nema dodavanja
   }
   refresh();
   return {card, refresh};
@@ -997,7 +997,7 @@ function renderFinals() {
   if (!swissFinished()) {
     wrap.innerHTML = '<div class="card"><div class="empty-note">Završnica se otvara kad se odigraju sva kola (' +
       state.numRounds + ').<br>Finale igraju 1. i 2. s tablice, a za 3. mjesto igraju 3. i 4. — oboje do ' +
-      FINAL_TARGET + ' na dvije dobivene.</div></div>';
+      FINAL_TARGET + ' u jednoj partiji.</div></div>';
     return;
   }
 
@@ -1030,6 +1030,9 @@ function renderFinals() {
     save();
   }
   const f = state.finals;
+  // jedna partija po seriji — uvijek barem jedno polje za upis
+  if (!f.finalSets || !f.finalSets.length) f.finalSets = [{s1: null, s2: null}];
+  if (!f.thirdSets || !f.thirdSets.length) f.thirdSets = [{s1: null, s2: null}];
 
   const podium = document.createElement('div');
   wrap.appendChild(podium);
@@ -1039,23 +1042,23 @@ function renderFinals() {
   function renderPodium() {
     const [fw1, fw2] = seriesWins(f.finalSets);
     const [tw1, tw2] = seriesWins(f.thirdSets);
-    if (!(fw1 >= 2 || fw2 >= 2)) {
+    if (!(fw1 >= 1 || fw2 >= 1)) {
       podium.className = '';
       podium.innerHTML = '';
       return;
     }
-    const champ = fw1 >= 2 ? f.f1 : f.f2;
-    const second = fw1 >= 2 ? f.f2 : f.f1;
+    const champ = fw1 >= 1 ? f.f1 : f.f2;
+    const second = fw1 >= 1 ? f.f2 : f.f1;
     podium.className = 'podium';
     let html = '<div class="trophy">🏆</div><h3>' + teamName(champ) + '</h3>' +
       '<div class="row">🥈 2. mjesto: ' + teamName(second) + '</div>';
-    if (tw1 >= 2 || tw2 >= 2) {
-      const third = tw1 >= 2 ? f.t3a : f.t3b;
+    if (tw1 >= 1 || tw2 >= 1) {
+      const third = tw1 >= 1 ? f.t3a : f.t3b;
       html += '<div class="row">🥉 3. mjesto: ' + teamName(third) + '</div>';
     }
     podium.innerHTML = html;
 
-    const third = (tw1 >= 2 || tw2 >= 2) ? (tw1 >= 2 ? f.t3a : f.t3b) : null;
+    const third = (tw1 >= 1 || tw2 >= 1) ? (tw1 >= 1 ? f.t3a : f.t3b) : null;
     const shareBtn = document.createElement('button');
     shareBtn.className = 'share-winners';
     shareBtn.textContent = '📸 Podijeli pobjednike';
@@ -1072,12 +1075,12 @@ function renderFinals() {
 
   finalSeries = seriesCard(
     '🏆 Finale',
-    '1. protiv 2. s tablice · do ' + FINAL_TARGET + ' · na dvije dobivene partije',
+    '1. protiv 2. s tablice · jedna partija do ' + FINAL_TARGET,
     f.f1, f.f2, f.finalSets, updateFinalsDerived, 'f'
   );
   thirdSeries = seriesCard(
     '🥉 Za 3. mjesto',
-    '3. protiv 4. s tablice · do ' + FINAL_TARGET + ' · na dvije dobivene partije',
+    '3. protiv 4. s tablice · jedna partija do ' + FINAL_TARGET,
     f.t3a, f.t3b, f.thirdSets, updateFinalsDerived, 't'
   );
   wrap.appendChild(finalSeries.card);

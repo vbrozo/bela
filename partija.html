@@ -109,7 +109,7 @@ function seriesDecided(sets) {
     if (!s || s.s1 == null || s.s2 == null || s.s1 === s.s2 || s.fin === false) return;
     if (s.s1 > s.s2) w1++; else w2++;
   });
-  return w1 >= 2 || w2 >= 2;
+  return w1 >= 1 || w2 >= 1;
 }
 
 function applyTournament(t) {
@@ -123,8 +123,8 @@ function applyTournament(t) {
     if (!f) { status.textContent = 'Završnica još nije počela.'; return; }
     a = name(FIN === 'f' ? f.f1 : f.t3a);
     b = name(FIN === 'f' ? f.f2 : f.t3b);
-    tgt = 1001;
-    // zaključaj kad je serija odlučena (dvije dobivene)
+    tgt = 1501;
+    // zaključaj kad je partija odlučena (jedna dobivena, do 1501)
     locked = seriesDecided(FIN === 'f' ? f.finalSets : f.thirdSets);
   } else {
     const r = Number(KOLO), m = Number(STOL);
@@ -429,7 +429,7 @@ function applyAccess() {
     unlockBtn.style.display = 'none';
     status.className = 'sync-status';
     status.textContent = finMode
-      ? '🔒 Serija je odlučena i zaključana. Za ispravak se javi organizatoru.'
+      ? '🔒 Partija je odigrana i zaključana. Za ispravak se javi organizatoru.'
       : '🔒 Ovo kolo je zaključano. Za ispravak se javi organizatoru.';
     return;
   }
