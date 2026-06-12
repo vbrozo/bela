@@ -23,7 +23,7 @@ window.Slika = (function () {
     const ctx = c.getContext('2d');
 
     const g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, '#0f4d2e'); g.addColorStop(1, '#166038');
+    g.addColorStop(0, '#1d6b41'); g.addColorStop(0.55, '#0d3d25'); g.addColorStop(1, '#092b1a');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -103,10 +103,10 @@ window.Slika = (function () {
       '<!doctype html><html lang="hr"><head><meta charset="utf-8">' +
       '<title>QR za stolove · ' + (r + 1) + '. kolo</title><style>' +
       'body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:14px;color:#1b2a22}' +
-      'h1{font-size:1.1rem;color:#0f4d2e;text-align:center;margin:0 0 12px}' +
+      'h1{font-size:1.1rem;color:#0d3d25;text-align:center;margin:0 0 12px}' +
       '.qrp{page-break-inside:avoid;display:inline-block;width:46%;box-sizing:border-box;' +
-      'border:2px solid #0f4d2e;border-radius:14px;margin:1%;padding:16px;text-align:center;vertical-align:top}' +
-      '.qrp .t{font-size:1.7rem;font-weight:800;color:#0f4d2e}' +
+      'border:2px solid #0d3d25;border-radius:14px;margin:1%;padding:16px;text-align:center;vertical-align:top}' +
+      '.qrp .t{font-size:1.7rem;font-weight:800;color:#0d3d25}' +
       '.qrp .n{margin:8px 0;font-weight:700;font-size:1.05rem}.qrp .n span{color:#6b7c72;font-weight:500}' +
       '.qrp img{width:320px;height:320px;max-width:100%}' +
       '.qrp .k{color:#6b7c72;font-size:.85rem;margin-top:6px}' +
